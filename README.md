@@ -2,7 +2,15 @@
 
 Azure Policy Framework is the foundation for a composite Terraform module for Azure Policy governance. It is designed to provision definitions, initiatives, assignments, managed identity and RBAC, remediation tasks and exemptions through one reusable package.
 
-The project follows proposed architecture from the article: [Architecting Azure Policy Governance at Enterprise Scale, Part 1](https://zimcanit.com/articles/azure-policy-at-scale-part-1/), and constitutes as the foundation for Part 2.
+The project follows the proposed architecture from [Architecting Azure Policy Governance at Enterprise Scale, Part 1](https://zimcanit.com/articles/azure-policy-at-scale-part-1/) and forms the foundation for Part 2.
+
+## Current status
+
+`modules/definitions` is implemented and independently tested. It creates
+custom Azure Policy definitions, passes built-in references through a canonical
+contract, and has local mocked contract tests. The JSON ingestion catalogue,
+initiatives, behaviour resolution, assignments, identity/RBAC, remediation and
+exemption modules remain planned. Repository-wide CI is intentionally deferred.
 
 ## Intended capabilities
 
@@ -41,7 +49,7 @@ environments/
 
 These categories illustrate deployment ownership. They do not require a particular landing-zone hierarchy. Resource-group and resource assignments use the same scope contract, irrespective of the folder used to organise them.
 
-Reusable implementation belongs under `modules/`, with boundaries for catalogue normalisation, definitions, initiatives, behaviour resolution, assignments, identity/RBAC, remediations and exemptions. Normalisation accepts HCL objects or decoded JSON; resource modules consume the resolved contract. Environment data remains separate from reusable policy content.
+Reusable implementation belongs under `modules/`, with boundaries for catalogue normalisation, definitions, initiatives, behaviour resolution, assignments, identity/RBAC, remediations and exemptions. The implemented definitions module accepts canonical native Terraform objects. The planned catalogue module will adapt native HCL objects and decoded JSON into that contract; resource modules then consume the resolved contract. Environment data remains separate from reusable policy content.
 
 State boundaries may separate content, assignments and operational requests. Cross-state consumers must receive explicit IDs and schema/version contracts. Remediation approvals and execution evidence belong in operational workflows; they are not implied by assignment creation.
 
@@ -49,14 +57,14 @@ State boundaries may separate content, assignments and operational requests. Cro
 
 GitHub Actions is the planned CI/CD platform. Workflows and pre-commit hooks are architectural scope only and have not been implemented. The future formatting gate will run `terraform fmt -check -diff` against maintained Terraform sources, excluding `docs/` and downloaded provider/module caches.
 
-Local pre-commit hooks will provide early formatting feedback. GitHub Actions will independently enforce the same checks on pull requests, regardless of whether contributors install local hooks. An empty scaffold must be reported as having no Terraform sources, rather than presented as a validated module.
+Local pre-commit hooks will provide early formatting feedback. GitHub Actions will independently enforce the same checks on pull requests, regardless of whether contributors install local hooks. The implemented definitions module has local formatting and mocked contract-test coverage; the broader repository is not yet a validated composite module.
 
 ## CI/CD scope
 
 | Stage | Scope and gate |
 | --- | --- |
-| Architecture branch, current | Document GitHub Actions and pre-commit responsibilities; no executable workflows or hooks. |
-| Module implementation, required before release | Add `terraform init -backend=false` and `terraform validate` for each supported module and example root; add `terraform test` contract tests, JSON checks, documentation checks and secret scanning. |
+| Current implementation | The definitions module has local `terraform test` contract coverage; no executable CI workflow or hooks exist yet. |
+| Remaining module implementation, required before release | Add `terraform init -backend=false` and `terraform validate` for each supported module and example root; extend `terraform test` across modules and hand-offs; add JSON, documentation and secret checks. |
 | Azure integration, required before release | Dedicated test scopes and workload identity federation; verify provider behaviour, all supported scopes, identities, roles, exemptions and explicit remediation. Clean up test resources and retain evidence. |
 | Consumer deployment | Environment-specific root configurations produce reviewed plans. Protected GitHub environments gate apply, using the reviewed plan and concurrency controls per state. Remediation requires a separate approved operation. |
 | Registry release | Publish only tested semantic versions after documentation, compatibility and migration checks. Registry publication is separate from deployment into Azure. |
@@ -67,7 +75,7 @@ Policy tests must cover incompatible initiative parameters, missing or invalid a
 
 Before the first Registry release:
 
-1. Implement the composite root and public submodules with documented inputs, outputs, validations and provider requirements.
+1. Implement the composite root and remaining public submodules with documented inputs, outputs, validations and provider requirements.
 2. Supply runnable JSON, HCL, mixed initiative and operational examples with synthetic environment values.
 3. Complete automated validation and Azure integration tests; document supported versions and known limitations.
 4. Publish the source in a public GitHub repository named `terraform-azurerm-policy-framework`.
