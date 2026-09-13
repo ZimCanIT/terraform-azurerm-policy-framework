@@ -1,0 +1,7 @@
+{
+  "catalogue_key": 42,
+  "display_name": "Numeric catalogue key",
+  "description": "Invalid scalar fixture: the catalogue key is a JSON number.",
+  "version": "1.0.0",
+  "policy_rule": {}
+}

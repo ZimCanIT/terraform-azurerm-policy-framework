@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "invalid_reference",
+  "display_name": "Invalid reference",
+  "policy_definition_references": [
+    {
+      "reference_id": "ambiguous_member",
+      "definition_key": "allowed_locations",
+      "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/cccccccc-cccc-cccc-cccc-cccccccccccc"
+    }
+  ]
+}

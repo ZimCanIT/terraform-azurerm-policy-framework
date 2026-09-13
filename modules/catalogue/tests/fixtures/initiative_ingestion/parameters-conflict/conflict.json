@@ -1,0 +1,15 @@
+{
+  "catalogue_key": "conflict_initiative",
+  "display_name": "Conflict initiative",
+  "parameters": {
+    "inline": {
+      "type": "String"
+    }
+  },
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "member"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "catalogue_key": " whitespace_key ",
+  "display_name": "Whitespace key",
+  "description": "Invalid key fixture: the catalogue key has surrounding whitespace.",
+  "version": "1.0.0",
+  "policy_rule": {}
+}

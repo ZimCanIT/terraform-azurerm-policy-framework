@@ -1,0 +1,16 @@
+{
+  "catalogue_key": "scalar_group_name_number",
+  "display_name": "Group name number",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations"
+    }
+  ],
+  "policy_definition_groups": [
+    {
+      "name": 42,
+      "display_name": "Group name number"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "catalogue_key": "governed_control",
+  "name": "governed-control",
+  "display_name": "Governed control",
+  "description": "Synthetic JSON control with governance declarations.",
+  "version": "1.0.0",
+  "supported_effects": ["Audit", "Disabled"],
+  "capabilities": {
+    "supportsRemediation": false
+  },
+  "governance": {
+    "requirement_id": "REQ-JSON-001",
+    "owner": "platform-team"
+  },
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

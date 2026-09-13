@@ -1,0 +1,18 @@
+{
+  "catalogue_key": "invalid_group",
+  "display_name": "Invalid group",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "member",
+      "group_names": ["missing"]
+    }
+  ],
+  "policy_definition_groups": [
+    {
+      "name": "group",
+      "display_name": "Group",
+      "unexpected": true
+    }
+  ]
+}

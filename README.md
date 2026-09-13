@@ -6,11 +6,18 @@ The project follows the proposed architecture from [Architecting Azure Policy Go
 
 ## Current status
 
-`modules/definitions` is implemented and independently tested. It creates
-custom Azure Policy definitions, passes built-in references through a canonical
-contract, and has local mocked contract tests. The JSON ingestion catalogue,
-initiatives, behaviour resolution, assignments, identity/RBAC, remediation and
-exemption modules remain planned. Repository-wide CI is intentionally deferred.
+`modules/definitions` is implemented: it creates custom Azure Policy
+definitions, passes built-in references through a canonical contract, and has
+local mocked contract tests. `modules/catalogue` is implemented as the
+provider-free source-adapter boundary, the only file-reading boundary in the
+package: it ingests native HCL and flat JSON policy libraries, validates the
+source envelope, and emits canonical `definitions` and `initiatives` outputs
+plus a non-sensitive `source_summary`. Both modules include runnable examples.
+Their Terraform test suites are owner-run, and no result here is claimed as
+independent verification. The remaining child modules (initiatives, behaviour
+resolution, assignments, identity/RBAC, remediations and exemptions), live
+Azure integration and Registry release work are outstanding, and
+repository-wide CI is intentionally deferred.
 
 ## Intended capabilities
 
@@ -49,7 +56,7 @@ environments/
 
 These categories illustrate deployment ownership. They do not require a particular landing-zone hierarchy. Resource-group and resource assignments use the same scope contract, irrespective of the folder used to organise them.
 
-Reusable implementation belongs under `modules/`, with boundaries for catalogue normalisation, definitions, initiatives, behaviour resolution, assignments, identity/RBAC, remediations and exemptions. The implemented definitions module accepts canonical native Terraform objects. The planned catalogue module will adapt native HCL objects and decoded JSON into that contract; resource modules then consume the resolved contract. Environment data remains separate from reusable policy content.
+Reusable implementation belongs under `modules/`, with boundaries for catalogue normalisation, definitions, initiatives, behaviour resolution, assignments, identity/RBAC, remediations and exemptions. The implemented catalogue module adapts native HCL objects and decoded flat JSON directories into canonical `definitions` and `initiatives` envelopes. The implemented definitions module consumes those canonical objects and creates custom definitions or passes built-in references through. Resource modules then consume the resolved contract. Environment data remains separate from reusable policy content.
 
 State boundaries may separate content, assignments and operational requests. Cross-state consumers must receive explicit IDs and schema/version contracts. Remediation approvals and execution evidence belong in operational workflows; they are not implied by assignment creation.
 
@@ -57,13 +64,13 @@ State boundaries may separate content, assignments and operational requests. Cro
 
 GitHub Actions is the planned CI/CD platform. Workflows and pre-commit hooks are architectural scope only and have not been implemented. The future formatting gate will run `terraform fmt -check -diff` against maintained Terraform sources, excluding `docs/` and downloaded provider/module caches.
 
-Local pre-commit hooks will provide early formatting feedback. GitHub Actions will independently enforce the same checks on pull requests, regardless of whether contributors install local hooks. The implemented definitions module has local formatting and mocked contract-test coverage; the broader repository is not yet a validated composite module.
+Local pre-commit hooks will provide early formatting feedback. GitHub Actions will independently enforce the same checks on pull requests, regardless of whether contributors install local hooks. The implemented catalogue and definitions modules have local formatting and contract-test coverage; the broader repository is not yet a validated composite module.
 
 ## CI/CD scope
 
 | Stage | Scope and gate |
 | --- | --- |
-| Current implementation | The definitions module has local `terraform test` contract coverage; no executable CI workflow or hooks exist yet. |
+| Current implementation | The catalogue and definitions modules have local `terraform test` coverage; no executable CI workflow or hooks exist yet. |
 | Remaining module implementation, required before release | Add `terraform init -backend=false` and `terraform validate` for each supported module and example root; extend `terraform test` across modules and hand-offs; add JSON, documentation and secret checks. |
 | Azure integration, required before release | Dedicated test scopes and workload identity federation; verify provider behaviour, all supported scopes, identities, roles, exemptions and explicit remediation. Clean up test resources and retain evidence. |
 | Consumer deployment | Environment-specific root configurations produce reviewed plans. Protected GitHub environments gate apply, using the reviewed plan and concurrency controls per state. Remediation requires a separate approved operation. |

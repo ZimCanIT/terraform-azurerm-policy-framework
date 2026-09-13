@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "scalar_member_version_constraint_number",
+  "display_name": "Member version constraint number",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations",
+      "version_constraint": 1
+    }
+  ]
+}

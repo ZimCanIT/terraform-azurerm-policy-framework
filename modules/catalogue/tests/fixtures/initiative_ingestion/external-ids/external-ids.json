@@ -1,0 +1,16 @@
+{
+  "catalogue_key": "external_ids",
+  "display_name": "External policy definitions",
+  "policy_definition_references": [
+    {
+      "reference_id": "subscription_custom",
+      "policy_definition_id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyDefinitions/custom-tag",
+      "version_constraint": "1.*.*"
+    },
+    {
+      "reference_id": "management_group_custom",
+      "policy_definition_id": "/providers/Microsoft.Management/managementGroups/platform/providers/Microsoft.Authorization/policyDefinitions/custom-location",
+      "pinned_version": "2.1.0"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "catalogue_key": "typed_definition",
+  "name": "typed-definition",
+  "display_name": "Typed definition",
+  "description": "Synthetic definition that exercises companion value types and declarations.",
+  "version": "1.0.0",
+  "supported_effects": ["Audit", "Disabled"],
+  "supported_overrides": [
+    {
+      "kind": "policyEffect",
+      "value": "Disabled"
+    }
+  ],
+  "selectors": [
+    {
+      "kind": "resourceLocation",
+      "in": ["eastus"]
+    }
+  ],
+  "non_compliance_messages": {
+    "default": "The synthetic control is not compliant."
+  },
+  "capabilities": {
+    "supportsIdentity": true,
+    "supportsRemediation": false
+  },
+  "governance": {
+    "requirement_id": "REQ-TAGS-001",
+    "owner": "platform-team",
+    "rationale": "Cost allocation for synthetic resources.",
+    "review_date": "2026-12-31"
+  },
+  "policy_rule": {
+    "if": {
+      "field": "tags['costCentre']",
+      "exists": "false"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

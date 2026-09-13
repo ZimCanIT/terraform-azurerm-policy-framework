@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "nested_only_initiative",
+  "display_name": "Nested only initiative",
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

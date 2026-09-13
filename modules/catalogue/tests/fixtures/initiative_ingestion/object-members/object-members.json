@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "object_members",
+  "display_name": "Object members",
+  "policy_definition_references": {
+    "member": {
+      "reference_id": "member",
+      "definition_key": "allowed_locations"
+    }
+  }
+}

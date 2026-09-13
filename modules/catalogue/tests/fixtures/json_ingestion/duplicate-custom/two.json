@@ -1,0 +1,19 @@
+{
+  "catalogue_key": "duplicate_json_key",
+  "name": "duplicate-json-key-two",
+  "display_name": "Duplicate JSON key two",
+  "mode": "Indexed",
+  "metadata": {
+    "category": "Test"
+  },
+  "version": "1.0.0",
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/resourceGroups"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

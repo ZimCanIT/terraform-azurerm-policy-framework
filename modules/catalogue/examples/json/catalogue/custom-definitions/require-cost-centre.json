@@ -1,0 +1,28 @@
+{
+  "catalogue_key": "require_cost_centre_tag",
+  "name": "require-cost-centre-tag",
+  "display_name": "Require cost centre tag",
+  "description": "Audit resources that do not have a cost centre tag.",
+  "mode": "Indexed",
+  "version": "1.0.0",
+  "supported_effects": ["Audit", "Disabled"],
+  "capabilities": {
+    "supportsIdentity": false,
+    "supportsRemediation": false
+  },
+  "governance": {
+    "requirement_id": "REQ-TAGS-001",
+    "owner": "platform-team",
+    "rationale": "Cost allocation requires a cost centre tag.",
+    "review_date": "2026-12-31"
+  },
+  "policy_rule": {
+    "if": {
+      "field": "[concat('tags[', parameters('tagName'), ']')]",
+      "exists": "false"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

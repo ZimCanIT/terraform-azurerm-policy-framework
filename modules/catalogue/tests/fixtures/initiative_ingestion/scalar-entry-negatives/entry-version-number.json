@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "scalar_entry_version_number",
+  "display_name": "Entry version number",
+  "version": 1.2,
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

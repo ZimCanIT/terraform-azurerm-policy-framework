@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "scalar_member_reference_id_number",
+  "display_name": "Member reference id number",
+  "policy_definition_references": [
+    {
+      "reference_id": 42,
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

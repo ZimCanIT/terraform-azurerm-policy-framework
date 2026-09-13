@@ -1,0 +1,16 @@
+{
+  "catalogue_key": "unknown_field",
+  "name": "unknown-field",
+  "display_name": "Unknown field",
+  "version": "1.0.0",
+  "unexpected": true,
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

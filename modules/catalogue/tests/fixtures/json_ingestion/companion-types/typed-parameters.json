@@ -1,0 +1,23 @@
+{
+  "retryCount": {
+    "type": "Integer",
+    "defaultValue": 3
+  },
+  "enforce": {
+    "type": "Boolean",
+    "defaultValue": true
+  },
+  "locations": {
+    "type": "Array",
+    "defaultValue": ["eastus", "westus"]
+  },
+  "advanced": {
+    "type": "Object",
+    "defaultValue": {
+      "nested": {
+        "enabled": false
+      },
+      "threshold": 2.5
+    }
+  }
+}

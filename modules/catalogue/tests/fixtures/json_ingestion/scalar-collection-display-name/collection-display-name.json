@@ -1,0 +1,7 @@
+{
+  "catalogue_key": "collection_display_name",
+  "display_name": ["not", "a", "string"],
+  "description": "Invalid scalar fixture: display_name is a JSON array.",
+  "version": "1.0.0",
+  "policy_rule": {}
+}

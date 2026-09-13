@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "group_names_boolean",
+  "display_name": "Group names boolean",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations",
+      "group_names": true
+    }
+  ]
+}

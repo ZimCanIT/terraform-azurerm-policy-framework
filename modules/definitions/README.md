@@ -76,7 +76,7 @@ For Terraform module version pinning, consumers should pin the final published p
 
 The input is intentionally an unconstrained top-level map so different policy-rule, parameter and metadata shapes retain their native Terraform types. The module rejects unknown or source-inapplicable envelope fields, validates scalar/object/list types and Azure identity shapes, and leaves policy-language semantics to catalogue and downstream validation.
 
-The shared architecture reference for this envelope is [definitions-contract.md](../../docs/architecture/definitions-contract.md). Future downstream modules should consume that canonical output rather than recreating these defaults or validations.
+This README is the shared reference for the envelope. Future downstream modules should consume that canonical output rather than recreating these defaults or validations.
 
 | Field | Default | Applies to | Notes |
 | --- | --- | --- | --- |
@@ -85,21 +85,43 @@ The shared architecture reference for this envelope is [definitions-contract.md]
 | `name` | catalogue key | both | Custom Azure name |
 | `policy_definition_id` | null | built-in | Valid policy-definition resource ID |
 | `description` | `""` | both | Maximum 512 characters |
-| `mode` | `All` | both | Custom modes are validated; provide the source mode for built-ins so the canonical output remains accurate without an Azure lookup |
-| `metadata`, `parameters` | `{}` | both | Preserved as native policy objects |
+| `mode` | `All` (custom), null (built-in) | both | Custom modes are validated and default to `All` because the created resource carries that value; a built-in mode should be supplied for accuracy, and an omitted or null built-in mode stays null (unknown) because this module does not look it up in Azure |
+| `metadata` | `{}` | both | Preserved as native policy objects |
+| `parameters` | `{}` (custom), null (built-in) | both | Preserved as native policy objects; an omitted or null built-in parameters object stays null (unknown) and an explicit `{}` stays a verified absence |
 | `policy_rule` | null | custom | Required for custom definitions |
-| `management_group_id` | null | custom | Provider subscription scope when omitted |
-| `role_definition_ids`, `supported_effects` | `[]` | both | Candidate catalogue data, not grants or assignment decisions |
+| `management_group_id` | null | custom | Provider subscription scope when omitted; a consumer-root deployment binding, never portable policy content |
+| `role_definition_ids` | `[]` (custom), null (built-in) | both | Candidate roles, not grants or assignment decisions; custom absence becomes `[]` because the created resource carries it, while an omitted or null built-in list stays null (unknown) and an explicit `[]` stays a verified absence |
+| `supported_effects` | null (unknown) | both | Catalogue capability data, not an assignment decision; absent stays null, explicit `[]` means verified absence |
+| `supported_overrides` | null | both | List of override declaration objects, preserved verbatim for behaviour resolution |
+| `selectors` | null | both | List of selector declaration objects, preserved verbatim for assignment and behaviour resolution |
+| `non_compliance_messages` | null | both | Object of message declarations, preserved verbatim for assignment review tooling |
+| `capabilities` | null | both | Object of capability declarations, preserved verbatim for behaviour resolution |
+| `governance` | null | both | Object of ownership and traceability declarations, owned by the governance area |
 | `version` | required via `version` or `metadata.version` | custom | Exact content version, synchronized into metadata |
 | `version_constraint` / `pinned_version` | null | built-in | Mutually exclusive version intent |
 
+For built-in entries, `mode`, `parameters` and `role_definition_ids` follow
+the same unknown-state rule as the capability declarations: absent or null
+means unknown, an explicitly supplied empty value means verified absence, and
+supplied values are preserved verbatim. Custom entries keep the `All`, `{}`
+and `[]` resource defaults for these three fields because the created
+policy-definition resource carries exactly those values. For
+`supported_effects`, `supported_overrides`, `selectors`,
+`non_compliance_messages`, `capabilities` and `governance`, absent or null
+means unknown, an explicitly supplied empty collection means verified absence,
+and supplied values are preserved verbatim. The module validates and preserves
+the declarations rather than interpreting them; the catalogue module and
+downstream consumers own the declaration semantics.
+
 Built-in `version_constraint` accepts `major.*.*` or `major.minor.*` (for example, `1.*.*` or `1.2.*`). `pinned_version` is an exact numeric `major.minor.patch` version. Custom `version` and non-blank `metadata.version` use exact numeric `major.minor.patch` values and must agree when both are supplied.
 
-The output contract contains `catalogue_key`, `source_type`, `id`, `name`, display fields, scope, policy content, candidate role IDs, supported effects, custom content version, built-in version intent and `created_by_module`. `id`, `name`, `display_name`, `description` and `mode` for custom entries can be unknown until apply; built-in values are available at plan time. `custom_definition_ids` contains only created custom IDs and `built_in_definition_ids` contains only supplied references.
+The output contract contains `catalogue_key`, `source_type`, `id`, `name`, display fields, scope, policy content, candidate role IDs, supported effects, supported overrides, selectors, non-compliance messages, capabilities, governance declarations, custom content version, built-in version intent and `created_by_module`. Supported effects and the capability and governance fields are carried for both custom and built-in entries; absent or null declarations remain null (unknown) and an explicitly supplied empty collection is preserved as verified absence. `id`, `name`, `display_name`, `description` and `mode` for custom entries can be unknown until apply; built-in `id` and `name` are available at plan time, while built-in `mode`, `parameters` and `role_definition_ids` follow the unknown-state rule above. `custom_definition_ids` contains only created custom IDs and `built_in_definition_ids` contains only supplied references.
 
 The runnable consumer example is [mixed input](examples/mixed-input/main.tf). It covers a custom definition at subscription scope, a built-in pass-through reference, and the shared output contract. Set the example's optional `management_group_id` variable to place the custom definition at management-group scope; the built-in entry still creates no resource.
 
 Changing a custom key, effective name or management-group scope can replace an Azure definition and affect initiatives or assignments. Review the Terraform plan and downstream references deliberately. The module uses the provider's default replacement ordering and read timeout; it does not claim that either migration ordering is safe without a reviewed plan.
+
+Migration note: the `definitions` output for built-in entries previously carried the defaults `mode = "All"`, `parameters = {}` and `role_definition_ids = []` whenever the capability was not declared. These now remain `null` (unknown) so missing capability information stays distinguishable from a verified absence. Explicitly supplied values and explicit empty declarations are unchanged, as are all custom-entry defaults. Consumers that read these built-in fields must treat `null` as unknown rather than as a real mode, an empty parameter schema or an absence of candidate roles.
 
 The module configures no provider or backend. Callers own provider aliases and credentials. The child requirements are Terraform `>= 1.7.0` and AzureRM `>= 5.0.0, < 6.0.0`; Terraform 1.7 enables the mocked-provider contract tests. The local lock selection is validation evidence, not a consumer module pin.
 

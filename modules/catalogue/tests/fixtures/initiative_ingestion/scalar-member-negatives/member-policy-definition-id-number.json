@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "scalar_member_policy_definition_id_number",
+  "display_name": "Member policy definition id number",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "policy_definition_id": 42,
+      "version_constraint": "1.*.*"
+    }
+  ]
+}

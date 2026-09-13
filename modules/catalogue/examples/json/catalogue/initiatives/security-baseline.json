@@ -1,0 +1,27 @@
+{
+  "catalogue_key": "security_baseline",
+  "display_name": "Security baseline",
+  "description": "Synthetic initiative composed from catalogue definition references.",
+  "version": "1.0.0",
+  "metadata": {
+    "category": "Security"
+  },
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "definition_key": "allowed_locations",
+      "group_names": ["location_governance"],
+      "version_constraint": "1.*.*"
+    },
+    {
+      "reference_id": "require_cost_centre_tag",
+      "definition_key": "require_cost_centre_tag"
+    }
+  ],
+  "policy_definition_groups": [
+    {
+      "name": "location_governance",
+      "display_name": "Location governance"
+    }
+  ]
+}

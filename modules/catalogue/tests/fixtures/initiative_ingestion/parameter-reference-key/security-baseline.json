@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "security_baseline",
+  "display_name": "Security baseline",
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

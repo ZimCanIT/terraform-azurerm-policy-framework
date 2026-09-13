@@ -1,0 +1,20 @@
+{
+  "catalogue_key": "conflict_definition",
+  "name": "conflict-definition",
+  "display_name": "Conflict definition",
+  "version": "1.0.0",
+  "parameters": {
+    "inline": {
+      "type": "String"
+    }
+  },
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

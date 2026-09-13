@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "scalar_entry_management_group_id_array",
+  "display_name": "Entry management group id array",
+  "management_group_id": ["/providers/Microsoft.Management/managementGroups/example-platform"],
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

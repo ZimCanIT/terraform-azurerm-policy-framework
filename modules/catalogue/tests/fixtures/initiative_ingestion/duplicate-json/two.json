@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "duplicate_initiative_key",
+  "display_name": "Duplicate initiative key two",
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_vm_skus",
+      "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/cccccccc-cccc-cccc-cccc-cccccccccccc"
+    }
+  ]
+}

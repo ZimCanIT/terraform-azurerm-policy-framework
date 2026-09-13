@@ -1,0 +1,7 @@
+{
+  "catalogue_key": "boolean_display_name",
+  "display_name": true,
+  "description": "Invalid scalar fixture: display_name is a JSON boolean.",
+  "version": "1.0.0",
+  "policy_rule": {}
+}

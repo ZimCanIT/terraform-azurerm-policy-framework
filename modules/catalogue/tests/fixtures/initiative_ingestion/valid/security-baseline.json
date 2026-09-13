@@ -1,0 +1,36 @@
+{
+  "catalogue_key": "security_baseline",
+  "display_name": "Security baseline",
+  "description": "Example initiative composed from catalogue definition references.",
+  "metadata": {
+    "category": "Security",
+    "version": "1.0.0"
+  },
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "definition_key": "allowed_locations",
+      "parameter_values": {
+        "listOfAllowedLocations": {
+          "value": "[parameters('allowedLocations')]"
+        }
+      },
+      "group_names": [
+        "location_governance"
+      ],
+      "version_constraint": "1.*.*"
+    },
+    {
+      "reference_id": "allowed_vm_skus",
+      "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "pinned_version": "2.0.0"
+    }
+  ],
+  "policy_definition_groups": [
+    {
+      "name": "location_governance",
+      "display_name": "Location governance"
+    }
+  ],
+  "version": "1.0.0"
+}

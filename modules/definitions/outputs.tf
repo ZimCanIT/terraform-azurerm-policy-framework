@@ -2,16 +2,32 @@ locals {
   base_definition_outputs = {
     for key, definition in local.definition_entries :
     key => {
-      catalogue_key       = key
-      source_type         = definition.source_type
-      display_name        = definition.display_name
-      description         = try(definition.description, "")
-      mode                = try(definition.mode, "All")
-      metadata            = definition.metadata
-      parameters          = definition.parameters
-      policy_rule         = definition.policy_rule
-      role_definition_ids = distinct(definition.role_definition_ids)
-      supported_effects   = definition.supported_effects
+      catalogue_key = key
+      source_type   = definition.source_type
+      display_name  = definition.display_name
+      description   = try(definition.description, "")
+      mode          = definition.mode
+      metadata      = definition.metadata
+      parameters    = definition.parameters
+      policy_rule   = definition.policy_rule
+      # distinct would error on the built-in null unknown state; only a
+      # supplied or defaulted list is deduplicated.
+      role_definition_ids = definition.role_definition_ids == null ? null : distinct(definition.role_definition_ids)
+
+      # Built-in entries keep the unknown state for mode, parameters and
+      # candidate roles: null means unknown and an explicitly supplied empty
+      # value means verified absence; custom entries carry their resource
+      # defaults. Supported effects and the capability and governance
+      # declarations are carried for both custom and built-in entries: null
+      # means unknown, an explicitly supplied empty collection means verified
+      # absence, and supplied values are preserved verbatim.
+      supported_effects       = definition.supported_effects
+      supported_overrides     = definition.supported_overrides
+      selectors               = definition.selectors
+      non_compliance_messages = definition.non_compliance_messages
+      capabilities            = definition.capabilities
+      governance              = definition.governance
+
       version             = null
       version_constraint  = definition.version_constraint
       pinned_version      = definition.pinned_version

@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "optional_scalar_types",
+  "display_name": "Optional scalar types",
+  "description": true,
+  "name": 42,
+  "mode": ["Indexed"],
+  "management_group_id": 7,
+  "version": "1.0.0",
+  "policy_rule": {}
+}

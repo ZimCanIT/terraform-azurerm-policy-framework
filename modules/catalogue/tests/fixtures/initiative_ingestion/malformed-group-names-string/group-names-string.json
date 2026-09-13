@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "group_names_string",
+  "display_name": "Group names string",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations",
+      "group_names": "bad"
+    }
+  ]
+}

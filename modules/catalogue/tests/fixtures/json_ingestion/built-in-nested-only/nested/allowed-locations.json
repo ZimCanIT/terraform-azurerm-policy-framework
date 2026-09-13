@@ -1,0 +1,6 @@
+{
+  "catalogue_key": "nested_only_built_in",
+  "display_name": "Nested only built-in",
+  "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c",
+  "version_constraint": "1.*.*"
+}

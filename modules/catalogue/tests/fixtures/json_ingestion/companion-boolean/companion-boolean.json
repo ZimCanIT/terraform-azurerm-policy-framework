@@ -1,0 +1,7 @@
+{
+  "catalogue_key": "companion_boolean",
+  "display_name": "Companion boolean",
+  "description": "Invalid companion fixture: the parameter companion is a JSON boolean.",
+  "version": "1.0.0",
+  "policy_rule": {}
+}

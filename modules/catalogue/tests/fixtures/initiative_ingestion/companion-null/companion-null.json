@@ -1,0 +1,13 @@
+{
+  "catalogue_key": "companion_null",
+  "display_name": "Companion null",
+  "description": "Invalid companion fixture: the parameter companion is JSON null.",
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "definition_key": "allowed_locations",
+      "version_constraint": "1.*.*"
+    }
+  ],
+  "version": "1.0.0"
+}

@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "scalar_member_definition_key_boolean",
+  "display_name": "Member definition key boolean",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": true
+    }
+  ]
+}

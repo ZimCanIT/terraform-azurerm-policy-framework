@@ -8,16 +8,40 @@ locals {
       policy_definition_id = try(trimspace(definition.policy_definition_id), "") != "" ? trimspace(definition.policy_definition_id) : null
       display_name         = definition.display_name
       description          = try(coalesce(definition.description, ""), "")
-      mode                 = try(coalesce(definition.mode, "All"), "All")
       metadata             = try(merge(definition.metadata), {})
-      parameters           = try(merge(definition.parameters), {})
       policy_rule          = try(definition.policy_rule, null)
       management_group_id  = try(trimspace(definition.management_group_id), "") != "" ? trimspace(definition.management_group_id) : null
-      role_definition_ids  = try(definition.role_definition_ids == null ? [] : tolist(definition.role_definition_ids), [])
-      supported_effects    = try(definition.supported_effects == null ? [] : tolist(definition.supported_effects), [])
-      version              = try(trimspace(definition.version), "") != "" ? trimspace(definition.version) : null
-      version_constraint   = try(trimspace(definition.version_constraint), "") != "" ? trimspace(definition.version_constraint) : null
-      pinned_version       = try(trimspace(definition.pinned_version), "") != "" ? trimspace(definition.pinned_version) : null
+
+      # mode, parameters and role_definition_ids follow a built-in-specific
+      # unknown-state contract: for built-in entries, which this module never
+      # looks up in Azure, omitted or null stays null (unknown), an explicit
+      # empty value stays empty (verified absence) and supplied values are
+      # preserved, with role lists normalised by tolist preserving element
+      # values. Custom entries retain the "All", {} and [] resource defaults
+      # because the custom policy-definition resource carries exactly those
+      # values. supported_effects and the capability and governance
+      # declarations are preserved for downstream interpretation for both
+      # source types: absent or null stays null (unknown), an explicit empty
+      # collection stays empty (verified absence) and supplied values are
+      # preserved verbatim.
+      mode       = definition.source_type == "built_in" ? try(definition.mode, null) : try(coalesce(definition.mode, "All"), "All")
+      parameters = definition.source_type == "built_in" ? try(definition.parameters, null) : try(merge(definition.parameters), {})
+      role_definition_ids = definition.source_type == "built_in" ? try(
+        definition.role_definition_ids == null ? null : tolist(definition.role_definition_ids),
+        null
+        ) : try(
+        definition.role_definition_ids == null ? [] : tolist(definition.role_definition_ids),
+        []
+      )
+      supported_effects       = try(definition.supported_effects == null ? null : tolist(definition.supported_effects), null)
+      supported_overrides     = try(definition.supported_overrides, null)
+      selectors               = try(definition.selectors, null)
+      non_compliance_messages = try(definition.non_compliance_messages, null)
+      capabilities            = try(definition.capabilities, null)
+      governance              = try(definition.governance, null)
+      version                 = try(trimspace(definition.version), "") != "" ? trimspace(definition.version) : null
+      version_constraint      = try(trimspace(definition.version_constraint), "") != "" ? trimspace(definition.version_constraint) : null
+      pinned_version          = try(trimspace(definition.pinned_version), "") != "" ? trimspace(definition.pinned_version) : null
     }
   }
 

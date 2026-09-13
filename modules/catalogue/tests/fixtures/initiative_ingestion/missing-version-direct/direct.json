@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "missing_version_direct",
+  "display_name": "Missing version direct",
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/cccccccc-cccc-cccc-cccc-cccccccccccc"
+    }
+  ]
+}

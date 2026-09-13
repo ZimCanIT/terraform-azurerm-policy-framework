@@ -1,0 +1,12 @@
+{
+  "catalogue_key": "conflicting_version_direct",
+  "display_name": "Conflicting version direct",
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "version_constraint": "1.*.*",
+      "pinned_version": "1.2.3"
+    }
+  ]
+}

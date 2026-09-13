@@ -1,0 +1,5 @@
+{
+  "catalogue_key": "malformed_references",
+  "display_name": "Malformed references",
+  "policy_definition_references": "not-a-list"
+}

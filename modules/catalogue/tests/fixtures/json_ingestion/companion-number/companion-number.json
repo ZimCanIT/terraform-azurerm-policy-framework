@@ -1,0 +1,7 @@
+{
+  "catalogue_key": "companion_number",
+  "display_name": "Companion number",
+  "description": "Invalid companion fixture: the parameter companion is a JSON number.",
+  "version": "1.0.0",
+  "policy_rule": {}
+}

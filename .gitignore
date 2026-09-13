@@ -48,3 +48,7 @@ terraform.rc
 
 # Local architecture, delivery, and reference context
 docs/
+
+# Local agent instructions
+AGENTS.md
+opencode.json

@@ -1,0 +1,5 @@
+{
+  "catalogue_key": "missing_policy_definition_id",
+  "display_name": "Missing Policy Definition ID",
+  "version_constraint": "1.*.*"
+}

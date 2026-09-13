@@ -1,0 +1,7 @@
+{
+  "catalogue_key": "companion_malformed",
+  "display_name": "Companion malformed",
+  "description": "Invalid companion fixture: the parameter companion is malformed JSON.",
+  "version": "1.0.0",
+  "policy_rule": {}
+}

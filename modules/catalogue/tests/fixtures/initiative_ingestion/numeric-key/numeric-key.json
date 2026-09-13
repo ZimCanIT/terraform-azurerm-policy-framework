@@ -1,0 +1,10 @@
+{
+  "catalogue_key": 42,
+  "display_name": "Numeric key",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

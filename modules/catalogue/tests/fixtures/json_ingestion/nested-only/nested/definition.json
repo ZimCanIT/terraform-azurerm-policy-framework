@@ -1,0 +1,15 @@
+{
+  "catalogue_key": "nested_only_definition",
+  "name": "nested-only-definition",
+  "display_name": "Nested only definition",
+  "version": "1.0.0",
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

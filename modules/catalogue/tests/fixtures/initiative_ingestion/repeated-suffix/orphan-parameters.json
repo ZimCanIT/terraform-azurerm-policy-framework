@@ -1,0 +1,10 @@
+{
+  "catalogue_key": "repeated_suffix",
+  "display_name": "Repeated suffix initiative",
+  "policy_definition_references": [
+    {
+      "reference_id": "allowed_locations",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

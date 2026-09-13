@@ -1,0 +1,13 @@
+{
+  "catalogue_key": "group_names_object",
+  "display_name": "Group names object",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations",
+      "group_names": {
+        "location_governance": "declared"
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "catalogue_key": "group_names_states",
+  "display_name": "Group names states",
+  "policy_definition_references": [
+    {
+      "reference_id": "omitted_group_names",
+      "definition_key": "allowed_locations"
+    },
+    {
+      "reference_id": "null_group_names",
+      "definition_key": "allowed_locations",
+      "group_names": null
+    },
+    {
+      "reference_id": "empty_group_names",
+      "definition_key": "allowed_locations",
+      "group_names": []
+    },
+    {
+      "reference_id": "valid_group_names",
+      "definition_key": "allowed_locations",
+      "group_names": ["location_governance"]
+    }
+  ],
+  "policy_definition_groups": [
+    {
+      "name": "location_governance",
+      "display_name": "Location governance"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "catalogue_key": "duplicate_reference",
+  "display_name": "Duplicate reference",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations"
+    },
+    {
+      "reference_id": "MEMBER",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

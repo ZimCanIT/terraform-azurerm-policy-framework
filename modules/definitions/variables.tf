@@ -22,7 +22,8 @@ variable "definitions" {
       length(setsubtract(toset(keys(definition)), toset([
         "source_type", "name", "policy_definition_id", "display_name", "description", "mode",
         "metadata", "parameters", "policy_rule", "management_group_id", "role_definition_ids",
-        "supported_effects", "version", "version_constraint", "pinned_version"
+        "supported_effects", "supported_overrides", "selectors", "non_compliance_messages",
+        "capabilities", "governance", "version", "version_constraint", "pinned_version"
       ]))) == 0
     ]), false)
     error_message = "Definitions may contain only fields from the canonical definitions contract."
@@ -183,15 +184,44 @@ variable "definitions" {
         for id in tolist(definition.role_definition_ids) :
         can(regex("^\".*\"$", jsonencode(id))) && trimspace(id) != ""
       ]), false)) &&
-      (try(definition.supported_effects == null, true) || try(alltrue([
-        for effect in tolist(definition.supported_effects) :
-        can(regex("^\".*\"$", jsonencode(effect))) && trimspace(effect) != ""
-      ]), false)) &&
+      (try(definition.supported_effects == null, true) || (
+        !can(keys(definition.supported_effects)) &&
+        try(alltrue([
+          for effect in definition.supported_effects :
+          can(regex("^\".*\"$", jsonencode(effect))) && trimspace(effect) != ""
+        ]), false)
+      )) &&
       (try(definition.policy_rule.then.details.roleDefinitionIds == null, true) || try(alltrue([
         for id in tolist(definition.policy_rule.then.details.roleDefinitionIds) :
         can(regex("^\".*\"$", jsonencode(id))) && trimspace(id) != ""
       ]), false))
     ]), false)
     error_message = "role_definition_ids, supported_effects and policy_rule.then.details.roleDefinitionIds must be lists of non-blank strings when supplied."
+  }
+
+  validation {
+    condition = try(alltrue([
+      for _, definition in var.definitions :
+      (try(definition.supported_overrides == null, true) || try(
+        !can(keys(definition.supported_overrides)) &&
+        alltrue([
+          for override in definition.supported_overrides :
+          can(keys(override))
+        ]),
+        false
+      )) &&
+      (try(definition.selectors == null, true) || try(
+        !can(keys(definition.selectors)) &&
+        alltrue([
+          for selector in definition.selectors :
+          can(keys(selector))
+        ]),
+        false
+      )) &&
+      (try(definition.non_compliance_messages == null, true) || can(keys(definition.non_compliance_messages))) &&
+      (try(definition.capabilities == null, true) || can(keys(definition.capabilities))) &&
+      (try(definition.governance == null, true) || can(keys(definition.governance)))
+    ]), false)
+    error_message = "supported_overrides and selectors must be lists of objects; non_compliance_messages, capabilities and governance must be objects when supplied."
   }
 }

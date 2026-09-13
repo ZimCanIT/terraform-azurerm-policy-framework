@@ -1,0 +1,19 @@
+{
+  "catalogue_key": "allowed_locations",
+  "display_name": "Allowed locations",
+  "description": "Restrict the locations in which resources can be deployed.",
+  "mode": "Indexed",
+  "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c",
+  "version_constraint": "1.*.*",
+  "supported_effects": ["Audit", "Deny", "Disabled"],
+  "capabilities": {
+    "supportsIdentity": false,
+    "supportsRemediation": false
+  },
+  "governance": {
+    "requirement_id": "REQ-LOCATION-001",
+    "owner": "platform-team",
+    "rationale": "Restrict deployments to approved regions.",
+    "review_date": "2026-12-31"
+  }
+}

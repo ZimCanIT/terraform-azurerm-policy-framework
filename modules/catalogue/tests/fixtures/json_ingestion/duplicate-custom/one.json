@@ -1,0 +1,19 @@
+{
+  "catalogue_key": "duplicate_json_key",
+  "name": "duplicate-json-key-one",
+  "display_name": "Duplicate JSON key one",
+  "mode": "Indexed",
+  "metadata": {
+    "category": "Test"
+  },
+  "version": "1.0.0",
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

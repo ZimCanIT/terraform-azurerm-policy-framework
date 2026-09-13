@@ -1,0 +1,8 @@
+{
+  "policy_definition_references": {
+    "type": "Object",
+    "metadata": {
+      "displayName": "Policy definition references"
+    }
+  }
+}

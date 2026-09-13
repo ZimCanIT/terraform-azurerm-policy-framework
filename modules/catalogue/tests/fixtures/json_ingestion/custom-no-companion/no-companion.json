@@ -1,0 +1,15 @@
+{
+  "catalogue_key": "no_companion_definition",
+  "name": "no-companion-definition",
+  "display_name": "No companion definition",
+  "version": "1.0.0",
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

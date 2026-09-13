@@ -1,0 +1,7 @@
+{
+  "catalogue_key": "duplicate_built_in_key",
+  "display_name": "Duplicate built-in key one",
+  "mode": "Indexed",
+  "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "version_constraint": "1.*.*"
+}

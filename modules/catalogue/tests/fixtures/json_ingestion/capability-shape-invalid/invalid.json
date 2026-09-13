@@ -1,0 +1,16 @@
+{
+  "catalogue_key": "invalid_capability_shape",
+  "name": "invalid-capability-shape",
+  "display_name": "Invalid capability shape",
+  "version": "1.0.0",
+  "supported_overrides": "not-a-list",
+  "policy_rule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Resources/subscriptions"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}

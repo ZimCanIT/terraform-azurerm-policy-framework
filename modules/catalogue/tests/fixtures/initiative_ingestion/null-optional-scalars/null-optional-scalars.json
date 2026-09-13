@@ -1,0 +1,24 @@
+{
+  "catalogue_key": "null_optional_scalars",
+  "name": null,
+  "display_name": "Null optional scalars",
+  "description": null,
+  "management_group_id": null,
+  "version": null,
+  "policy_definition_references": [
+    {
+      "reference_id": "keyed_member",
+      "definition_key": "allowed_locations",
+      "group_names": null,
+      "version_constraint": null,
+      "pinned_version": null
+    }
+  ],
+  "policy_definition_groups": [
+    {
+      "name": "location_governance",
+      "display_name": "Location governance",
+      "description": null
+    }
+  ]
+}

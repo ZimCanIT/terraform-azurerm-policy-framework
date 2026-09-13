@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "scalar_entry_description_boolean",
+  "display_name": "Entry description boolean",
+  "description": true,
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "catalogue_key": "scalar_member_pinned_version_array",
+  "display_name": "Member pinned version array",
+  "policy_definition_references": [
+    {
+      "reference_id": "member",
+      "definition_key": "allowed_locations",
+      "pinned_version": ["2.0.0"]
+    }
+  ]
+}

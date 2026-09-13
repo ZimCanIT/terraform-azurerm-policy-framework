@@ -1,0 +1,21 @@
+{
+  "catalogue_key": "require_cost_centre_tag",
+  "name": "require-cost-centre-tag",
+  "display_name": "Require cost centre tag",
+  "description": "Audit resources without a cost centre tag.",
+  "mode": "Indexed",
+  "metadata": {
+    "category": "Tags"
+  },
+  "version": "1.0.0",
+  "supported_effects": ["Audit", "Disabled"],
+  "policy_rule": {
+    "if": {
+      "field": "tags['costCentre']",
+      "exists": "false"
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}
