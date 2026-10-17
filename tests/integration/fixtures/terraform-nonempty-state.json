@@ -1,0 +1,16 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.0",
+  "serial": 2,
+  "lineage": "fixture-nonempty-state",
+  "outputs": {},
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "azurerm_subscription_policy_assignment",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": []
+    }
+  ]
+}

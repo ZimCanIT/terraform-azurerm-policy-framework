@@ -29,7 +29,8 @@
   "policy_definition_groups": [
     {
       "name": "location_governance",
-      "display_name": "Location governance"
+      "display_name": "Location governance",
+      "metadata": {}
     }
   ],
   "version": "1.0.0"

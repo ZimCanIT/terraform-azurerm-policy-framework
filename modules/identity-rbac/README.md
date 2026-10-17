@@ -1,0 +1,92 @@
+# Identity-RBAC module
+
+`identity-rbac` consumes the shared resolved-assignment map and creates only the identities and least-privilege role grants already decided by behaviour resolution. It does not read policy files, resolve effects, infer roles or create remediation operations.
+
+## Contract
+
+`assignments` is keyed by stable `assignment_key`. Each record contains `intent.scope` and the resolver-owned `resolved` object. The module consumes `resolved.identity` and `resolved.required_roles` without recomputing effect or identity requirements. Each resolved role carries a `grant_scope` selected by the resolver: an explicit `role_grant_scopes` override for that role definition wins and otherwise the resolver falls back to the assignment scope.
+
+For initiative targets, behaviour resolution supplies the complete `resolved.members` list and aggregates `resolved.identity.required`, `resolved.required_roles` and `resolved.list_fields.role_definition_ids` across every member that can execute an identity effect. Identity-RBAC does not choose one member or infer a set-wide role from a single effect. It creates grants from the complete aggregate and returns `members` unchanged in the `identity_rbac` record for review. A null aggregate remains unknown and is rejected for an identity-required decision; a verified empty aggregate is accepted only when identity is not required.
+
+Supported identity strategies are:
+
+- `none`, with `required = false` and a verified empty role list
+- `user_assigned`, with `required = true`, deterministic `name_basis`, `location`, `resource_group_name` and at least one required role
+
+System-assigned identities and unknown identity decisions are rejected. A required identity is returned as an `assignment_binding`; the assignments module consumes that binding to attach the user-assigned identity to the policy assignment. The relationship is acyclic: the resolver feeds both modules, and the assignment resource consumes the identity output.
+
+Each resolved role must provide:
+
+- a full tenant-level or subscription-level Azure role-definition resource ID ending in a role GUID
+- a non-blank purpose
+- an explicit management-group, subscription, resource-group or resource grant scope
+
+Roles must be declared by the resolved requirement and must also be present in the resolver's validated candidate role list, including a valid role-definition resource ID. `Contributor` and `Owner` are identified by their terminal role GUID, so the exclusion holds for the tenant-level and the subscription-prefixed ID form, and no fallback role is selected. Management-group, subscription, resource-group and resource scopes are supported; a resource scope must name a resource, so a bare provider namespace or a resource type without a resource name is rejected.
+
+Azure normalises tenant-level role-definition IDs to the subscription-prefixed form on read-back when the grant scope is not the tenant itself. Declaring grants in tenant form therefore produces permanent drift and replacement churn for such scopes; declare the subscription-prefixed form when the grant scope carries a subscription.
+
+Grant-scope handling is fail closed at this boundary: the module consumes the resolved `grant_scope` through guarded access and never widens a blank or unparsable grant scope to the assignment scope, rejecting the grant instead. Malformed or unknown grants fail validation rather than becoming an empty collection; null remains unknown and an explicit empty list is accepted only for an identity-free decision.
+
+Guards are named so failures are attributable. The `assignments` variable validation rejects structural contract breaches, and each role assignment carries named preconditions that report the grant key, assignment key and offending role definition:
+
+- `grant_scope_valid`: non-blank, well-formed grant scope, never widened to the assignment scope
+- `role_definition_valid`: full role-definition resource ID ending in a role GUID
+- `broad_role_excluded`: terminal role GUID is neither `Contributor` nor `Owner`
+- `purpose_supplied`: non-blank resolved purpose
+- `role_declared`: role definition is present in the resolved candidate role list
+
+## Outputs
+
+`identity_rbac` preserves, per assignment key:
+
+- identity requirement, strategy and deterministic name
+- identity and principal IDs when created
+- the assignment binding consumed by assignments
+- role definition IDs, purposes, explicit grant scopes and role assignment IDs
+- effective decision, governance and replacement intent
+- the resolver's complete per-member decisions, unchanged (null remains unknown)
+- `replacement_impact`, identifying identity replacement fields and grant-address changes
+
+Identity names and role-assignment addresses are stable for assignment key, strategy, role and grant scope. Purpose is descriptive output and does not form the role resource key. Changing identity name basis, strategy, location or resource group is a replacement/migration event; changing role definition or grant scope changes the grant address and requires review of the old grant. The assignments module receives only `assignment_binding` records from this module, so identity attachment is acyclic and cannot use a broad caller fallback.
+
+## Example
+
+```hcl
+module "identity_rbac" {
+  source = "../../modules/identity-rbac"
+
+  assignments = {
+    deploy_storage = {
+      intent = {
+        scope = {
+          type = "resource_group"
+          id   = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/example-rg"
+        }
+      }
+      resolved = {
+        effective_effect = "DeployIfNotExists"
+        list_fields = {
+          role_definition_ids = ["/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/00000000-0000-0000-0000-000000000000"]
+        }
+        identity = {
+          required            = true
+          strategy             = "user_assigned"
+          name_basis          = "storage-deploy"
+          location            = "westeurope"
+          resource_group_name = "identity-rg"
+          rationale           = "The resolved deployment operation requires a managed identity."
+        }
+        required_roles = [{
+          role_definition_id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/00000000-0000-0000-0000-000000000000"
+          purpose            = "deploy resources"
+          grant_scope        = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/example-rg"
+        }]
+      }
+    }
+  }
+}
+```
+
+## Compatibility and validation
+
+This child module targets Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`. Provider aliases, credentials and scope bindings remain caller-owned. `terraform validate` checks configuration and provider schema only; it does not execute variable validation or resource preconditions.

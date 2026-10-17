@@ -166,41 +166,12 @@ run "rejects_malformed_custom_json" {
   expect_failures = [terraform_data.json_ingestion_contract]
 }
 
-run "rejects_non_object_null_custom_json" {
+run "rejects_non_object_custom_json_documents" {
+  # One null, array, string and number document each; every file is reported.
   command = plan
 
   variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/non-object-null"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_non_object_array_custom_json" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/non-object-array"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_non_object_string_custom_json" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/non-object-string"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_non_object_number_custom_json" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/non-object-number"
+    custom_definition_directory = "tests/fixtures/json_ingestion/non-object-negatives"
   }
 
   expect_failures = [terraform_data.json_ingestion_contract]
@@ -226,51 +197,12 @@ run "rejects_invalid_capability_container_shape" {
   expect_failures = [terraform_data.json_ingestion_contract]
 }
 
-run "rejects_numeric_custom_definition_catalogue_key" {
+run "rejects_non_string_custom_definition_scalars" {
+  # Numeric key; numeric, boolean and collection display_name; non-string optional scalars.
   command = plan
 
   variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/scalar-numeric-key"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_numeric_custom_definition_display_name" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/scalar-numeric-display-name"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_boolean_custom_definition_display_name" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/scalar-boolean-display-name"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_collection_custom_definition_display_name" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/scalar-collection-display-name"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_non_string_custom_definition_optional_scalars" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/scalar-optional-types"
+    custom_definition_directory = "tests/fixtures/json_ingestion/scalar-negatives"
   }
 
   expect_failures = [terraform_data.json_ingestion_contract]
@@ -438,61 +370,12 @@ run "rejects_case_insensitive_cross_source_definition_key_collision" {
   expect_failures = [output.definitions]
 }
 
-run "rejects_null_custom_parameter_companion" {
+run "rejects_non_object_custom_parameter_companions" {
+  # Null, array, string, number, boolean and malformed companions, one pair each.
   command = plan
 
   variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/companion-null"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_array_custom_parameter_companion" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/companion-array"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_string_custom_parameter_companion" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/companion-string"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_number_custom_parameter_companion" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/companion-number"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_boolean_custom_parameter_companion" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/companion-boolean"
-  }
-
-  expect_failures = [terraform_data.json_ingestion_contract]
-}
-
-run "rejects_malformed_custom_parameter_companion" {
-  command = plan
-
-  variables {
-    custom_definition_directory = "tests/fixtures/json_ingestion/companion-malformed"
+    custom_definition_directory = "tests/fixtures/json_ingestion/companion-negatives"
   }
 
   expect_failures = [terraform_data.json_ingestion_contract]

@@ -1,0 +1,75 @@
+{
+  "resolved_assignments": {
+    "sensitive": false,
+    "type": ["object", {}],
+    "value": {
+      "modify-tag-rg": {
+        "assignment": {
+          "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/modify-tag-rg",
+          "name": "modify-tag-rg"
+        },
+        "resolved": {
+          "effective_effect": "Modify",
+          "policy_definition_id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policySetDefinitions/tag-governance"
+        }
+      }
+    }
+  },
+  "governance": {
+    "sensitive": false,
+    "type": ["object", {}],
+    "value": {}
+  },
+  "exemption_assignment_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/modify-tag-rg"
+  },
+  "resolved_assignment_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/modify-tag-rg"
+  },
+  "definition_ids": {
+    "sensitive": false,
+    "type": ["map", "string"],
+    "value": {
+      "add-costcentre-tag": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policyDefinitions/add-costcentre-tag"
+    }
+  },
+  "set_definition_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policySetDefinitions/tag-governance"
+  },
+  "remediation_and_exemption": {
+    "sensitive": false,
+    "type": ["object", {}],
+    "value": {
+      "remediations": {
+        "remediate-tag-rg": {
+          "mode": "execute",
+          "status": "created",
+          "assignment_key": "modify-tag-rg",
+          "member_reference_id": "add-costcentre-tag-member",
+          "remediation_eligibility": "eligible",
+          "remediation_reason": "Identity effect is eligible",
+          "blocked_reasons": []
+        }
+      },
+      "exemptions": {
+        "exempt-tag-rg-uat": {
+          "request_mode": "create",
+          "owner": "platform-governance",
+          "category": "Waiver",
+          "expires_on": "2026-12-31T00:00:00Z",
+          "active": true,
+          "expired": false,
+          "blocked": false,
+          "rejected": false,
+          "azure_status": "Valid"
+        }
+      }
+    }
+  }
+}

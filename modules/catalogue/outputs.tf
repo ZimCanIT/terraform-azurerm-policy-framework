@@ -52,3 +52,23 @@ output "source_summary" {
     local.initiative_source_summary,
   )
 }
+
+output "definitions" {
+  description = "Canonical policy definition entries keyed by stable catalogue key; pass directly to modules/definitions.definitions."
+  value       = local.definitions
+
+  precondition {
+    condition     = length(local.duplicate_definition_keys) == 0
+    error_message = "Definition catalogue keys must be unique across native HCL and JSON sources (case-insensitive collisions: ${join(", ", local.duplicate_definition_keys)})."
+  }
+}
+
+output "initiatives" {
+  description = "Canonical policy initiative entries keyed by stable catalogue key; pass to the modules/initiatives.initiatives input. Catalogue preserves stable keys, member references and declared version intent only; the initiatives module owns version inheritance and effective-version decisions."
+  value       = local.initiatives
+
+  precondition {
+    condition     = length(local.duplicate_initiative_keys) == 0
+    error_message = "Initiative catalogue keys must be unique across native HCL and JSON sources (case-insensitive collisions: ${join(", ", local.duplicate_initiative_keys)})."
+  }
+}

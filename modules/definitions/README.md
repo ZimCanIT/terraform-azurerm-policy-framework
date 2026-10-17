@@ -76,7 +76,7 @@ For Terraform module version pinning, consumers should pin the final published p
 
 The input is intentionally an unconstrained top-level map so different policy-rule, parameter and metadata shapes retain their native Terraform types. The module rejects unknown or source-inapplicable envelope fields, validates scalar/object/list types and Azure identity shapes, and leaves policy-language semantics to catalogue and downstream validation.
 
-This README is the shared reference for the envelope. Future downstream modules should consume that canonical output rather than recreating these defaults or validations.
+This README is the shared reference for the envelope. Downstream modules should consume that canonical output rather than recreating these defaults or validations. The initiatives module resolves member references from this output; behaviour resolution and assignments consume its results.
 
 | Field | Default | Applies to | Notes |
 | --- | --- | --- | --- |
@@ -123,7 +123,7 @@ Changing a custom key, effective name or management-group scope can replace an A
 
 Migration note: the `definitions` output for built-in entries previously carried the defaults `mode = "All"`, `parameters = {}` and `role_definition_ids = []` whenever the capability was not declared. These now remain `null` (unknown) so missing capability information stays distinguishable from a verified absence. Explicitly supplied values and explicit empty declarations are unchanged, as are all custom-entry defaults. Consumers that read these built-in fields must treat `null` as unknown rather than as a real mode, an empty parameter schema or an absence of candidate roles.
 
-The module configures no provider or backend. Callers own provider aliases and credentials. The child requirements are Terraform `>= 1.7.0` and AzureRM `>= 5.0.0, < 6.0.0`; Terraform 1.7 enables the mocked-provider contract tests. The local lock selection is validation evidence, not a consumer module pin.
+The module configures no provider or backend. Callers own provider aliases and credentials. The child requirements are Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`; the local lock selection is validation evidence, not a consumer module pin.
 
 ## Tests
 

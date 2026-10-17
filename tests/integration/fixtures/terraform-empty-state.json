@@ -1,0 +1,8 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.0",
+  "serial": 1,
+  "lineage": "fixture-empty-state",
+  "outputs": {},
+  "resources": []
+}

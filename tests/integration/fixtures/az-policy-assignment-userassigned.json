@@ -1,0 +1,15 @@
+{
+  "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/modify-tag-rg",
+  "identity": {
+    "type": "UserAssigned",
+    "userAssignedIdentities": {
+      "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/irb-fixture": {}
+    }
+  },
+  "scope": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture",
+  "policyDefinitionId": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policySetDefinitions/tag-governance",
+  "parameters": {
+    "costCentreTagName": { "value": "CostCentre" },
+    "costCentreTagValue": { "value": "zctfp-uat" }
+  }
+}

@@ -32,8 +32,16 @@ override.tf.json
 # Include override files you do wish to add to version control using negated pattern
 # !example_override.tf
 
-# Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
-# example: *tfplan*
+# Generated plan artefacts are local review evidence and are never committed
+# or treated as publication-gate candidates
+*.tfplan
+*.plan
+$plan
+old-opencode.*-json.txt
+
+# Python bytecode caches from the repository gate tooling
+__pycache__/
+*.pyc
 
 # Ignore CLI configuration files
 .terraformrc
@@ -49,6 +57,7 @@ terraform.rc
 # Local architecture, delivery, and reference context
 docs/
 
-# Local agent instructions
+# Local agent instructions and per-user agent settings
 AGENTS.md
 opencode.json
+.claude/settings.local.json

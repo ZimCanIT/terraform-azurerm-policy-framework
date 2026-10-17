@@ -1,26 +1,8 @@
 locals {
-  # Shared definition adaptation and semantic validation.
-  #
-  # The native HCL adapter (hcl.tf) and the JSON adapters (json.tf) each read
-  # their source and declare common raw-entry records in
-  # local.native_definition_raw_entries, local.custom_definition_raw_entries and
-  # local.built_in_definition_raw_entries. Every record exposes the same view:
-  # catalogue and projection keys, authoring format, resolved source type, the
-  # raw document and the source-selected parameters value. Semantic rules that
-  # apply to more than one path are implemented once against this view.
-  #
-  # Each raw entry is then wrapped in a validation record carrying a fixed set
-  # of named boolean rules. Every rule is an independent predicate, so a
-  # failure can name the offending source file or catalogue key and the failed
-  # rule instead of collapsing several rule classes into one boolean. The
-  # blocking preconditions in json.tf assert each rule separately.
-  #
-  # Native field semantics cannot live in variable validation: a validation
-  # condition may only reference the variable it guards, and referencing a
-  # local derived from that variable is a dependency cycle (verified against
-  # Terraform 1.15.9). The rules below are therefore enforced as preconditions
-  # on terraform_data.json_ingestion_contract in json.tf. Only cheap outer-shape
-  # checks remain at the native variable boundary.
+  # One raw-entry view for native HCL, custom JSON and built-in JSON sources;
+  # every semantic rule below is a named predicate evaluated once against it
+  # and asserted by guards.tf. Native rules cannot live in variable validation
+  # because a condition cannot reference a local derived from its own variable.
   definition_raw_entries = merge(
     local.native_definition_raw_entries,
     local.custom_definition_raw_entries,
@@ -30,6 +12,18 @@ locals {
   # The full built-in policy definition ID shape is shared by required-field
   # checks; kept as a named value so the predicate line stays readable.
   built_in_policy_definition_id_pattern = "^/providers/Microsoft\\.Authorization/policyDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+
+  custom_envelope_fields = toset([
+    "catalogue_key", "name", "display_name", "description", "mode", "metadata", "parameters",
+    "policy_rule", "management_group_id", "role_definition_ids", "supported_effects", "supported_overrides",
+    "selectors", "non_compliance_messages", "capabilities", "governance", "version"
+  ])
+
+  built_in_envelope_fields = toset([
+    "catalogue_key", "name", "policy_definition_id", "display_name", "description", "mode", "metadata",
+    "parameters", "role_definition_ids", "supported_effects", "supported_overrides", "selectors",
+    "non_compliance_messages", "capabilities", "governance", "version_constraint", "pinned_version"
+  ])
 
   definition_rule_names = [
     "source_type_valid",
@@ -245,44 +239,6 @@ locals {
       }
     }
   }
-
-  # One failure string per failing entry and rule. Each string names the source
-  # file or key, the catalogue key and the failed rule.
-  definition_rule_failures = {
-    for rule in local.definition_rule_names :
-    rule => [
-      for origin, record in local.definition_validation_records :
-      "${record.source_id} (catalogue key ${jsonencode(record.catalogue_key)}): failed ${rule}"
-      if !record.rules[rule]
-    ]
-  }
-
-  # Bounded, human-readable text for every named-rule failure list in the
-  # module. Preconditions assert one rule each and interpolate the matching
-  # text, so a diagnostic always names the failed rule and a bounded number of
-  # offending sources instead of an unbounded dump.
-  catalogue_failure_text = {
-    for scope, rule_failures in {
-      definition           = local.definition_rule_failures
-      definition_companion = local.definition_companion_failures
-      initiative_entry     = local.initiative_entry_rule_failures
-      initiative_reference = local.initiative_reference_rule_failures
-      initiative_group     = local.initiative_group_rule_failures
-      initiative_companion = local.initiative_companion_failures
-    } :
-    scope => {
-      for rule, failures in rule_failures :
-      rule => join("", [
-        join("; ", slice(failures, 0, min(3, length(failures)))),
-        length(failures) > 3 ? "; and ${length(failures) - 3} more" : "",
-      ])
-    }
-  }
-
-  # The preconditions read their text from these aliases so the definition
-  # diagnostics resolve to the matching rule list.
-  definition_failure_text   = local.catalogue_failure_text.definition
-  definition_companion_text = local.catalogue_failure_text.definition_companion
 
   # Canonical projection: one object shape per entry, applied once for every
   # authoring path. Every canonical field is read from the raw document with

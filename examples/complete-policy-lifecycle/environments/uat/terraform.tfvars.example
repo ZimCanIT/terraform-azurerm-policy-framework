@@ -1,0 +1,57 @@
+# Complete policy lifecycle example: UAT environment inputs.
+#
+# Copy this file to uat.tfvars in the same directory, then replace RUNID and
+# SUBSCRIPTION-ID as described in the uat README. RUNID must be a short
+# lowercase alphanumeric run identifier because it also forms part of the
+# storage account name. SUBSCRIPTION-ID must be the authorised UAT
+# subscription. Never commit uat.tfvars: it carries a real subscription ID.
+
+# Authorised UAT subscription. It qualifies the role definition IDs in the
+# definition content, the intent role grant and the identity-rbac scope
+# decisions; without it the synthetic default leaks into live role grants and
+# the policy rule's roleDefinitionIds, which remediation cannot resolve.
+policy_subscription_id = "SUBSCRIPTION-ID"
+
+# Disposable resource group that hosts the storage account remediation target
+# and receives the Modify assignment and its role grant. The RUNID segment
+# keeps concurrent runs from colliding.
+target_resource_group_name = "rg-zctfp-RUNID"
+
+# Azure region for the target resource group. Any region that supports the
+# storage account and user-assigned managed identity is valid.
+target_location = "swedencentral"
+
+# Storage account name: 3 to 24 lowercase alphanumeric characters only.
+# Replace the runid segment with the lowercase RUNID.
+target_storage_account_name = "zctfprunidstore"
+
+# Full resource ID of the target resource group. The subscription segment
+# must be the authorised UAT subscription, matching az account set.
+target_resource_group_id = "/subscriptions/SUBSCRIPTION-ID/resourceGroups/rg-zctfp-RUNID"
+
+# Azure region for the user-assigned managed identity. The Modify effect
+# requires a regional identity.
+identity_location = "swedencentral"
+
+# Resource group that hosts the user-assigned managed identity. The example
+# creates this resource group, so the name must be unique in the subscription.
+identity_resource_group_name = "rg-zctfp-RUNID"
+
+# Stage 1 keeps this false: the exemption is created only in stage 2, after
+# the remediation assertion, so the two governed operations cannot interfere.
+create_exemption = false
+
+# Deterministic exemption status classification. timestamp() is unknown at
+# plan time, so status outputs churn on every plan unless this is fixed. Set
+# it once per run and pass the same value to every plan and apply.
+evaluation_time = "EVALUATION-TIME-UTC"
+
+# Expiry used by the stage 2 apply, as a full RFC3339 timestamp, which the
+# exemptions contract requires. Change it only in the explicit renewal step so
+# repeated plans converge on the persisted input.
+exemption_expiry = "EXPIRY-TIME-UTC"
+
+# Stage 2 only: uncomment after the stage 1 verification and set the value to
+# the resolved assignment id output of the stage 1 apply. Leave commented in
+# stage 1; an exemption id pointing at a missing assignment is rejected.
+# exemption_assignment_id = "/subscriptions/SUBSCRIPTION-ID/resourceGroups/rg-zctfp-RUNID/providers/Microsoft.Authorization/policyAssignments/<assignment-name>"

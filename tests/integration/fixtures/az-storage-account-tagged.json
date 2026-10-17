@@ -1,0 +1,8 @@
+{
+  "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Storage/storageAccounts/zctfpfixturestore",
+  "name": "zctfpfixturestore",
+  "tags": {
+    "CostCentre": "zctfp-uat",
+    "Owner": "terraform"
+  }
+}

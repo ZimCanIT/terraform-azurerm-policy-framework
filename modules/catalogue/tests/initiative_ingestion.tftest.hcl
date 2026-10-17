@@ -278,31 +278,12 @@ run "rejects_non_object_initiative_json" {
   expect_failures = [terraform_data.initiative_ingestion_contract]
 }
 
-run "rejects_array_initiative_parameter_companion" {
+run "rejects_non_object_initiative_parameter_companions" {
+  # Array, null and number companions, one pair each.
   command = plan
 
   variables {
-    initiative_directory = "tests/fixtures/initiative_ingestion/companion-array"
-  }
-
-  expect_failures = [terraform_data.initiative_ingestion_contract]
-}
-
-run "rejects_null_initiative_parameter_companion" {
-  command = plan
-
-  variables {
-    initiative_directory = "tests/fixtures/initiative_ingestion/companion-null"
-  }
-
-  expect_failures = [terraform_data.initiative_ingestion_contract]
-}
-
-run "rejects_number_initiative_parameter_companion" {
-  command = plan
-
-  variables {
-    initiative_directory = "tests/fixtures/initiative_ingestion/companion-number"
+    initiative_directory = "tests/fixtures/initiative_ingestion/companion-negatives"
   }
 
   expect_failures = [terraform_data.initiative_ingestion_contract]
@@ -493,41 +474,12 @@ run "rejects_object_native_group_names_container" {
   expect_failures = [terraform_data.initiative_ingestion_contract]
 }
 
-run "rejects_string_json_group_names_container" {
+run "rejects_non_array_json_group_names_containers" {
+  # String, number, boolean and object group_names containers, one initiative each.
   command = plan
 
   variables {
-    initiative_directory = "tests/fixtures/initiative_ingestion/malformed-group-names-string"
-  }
-
-  expect_failures = [terraform_data.initiative_ingestion_contract]
-}
-
-run "rejects_number_json_group_names_container" {
-  command = plan
-
-  variables {
-    initiative_directory = "tests/fixtures/initiative_ingestion/malformed-group-names-number"
-  }
-
-  expect_failures = [terraform_data.initiative_ingestion_contract]
-}
-
-run "rejects_boolean_json_group_names_container" {
-  command = plan
-
-  variables {
-    initiative_directory = "tests/fixtures/initiative_ingestion/malformed-group-names-boolean"
-  }
-
-  expect_failures = [terraform_data.initiative_ingestion_contract]
-}
-
-run "rejects_object_json_group_names_container" {
-  command = plan
-
-  variables {
-    initiative_directory = "tests/fixtures/initiative_ingestion/malformed-group-names-object"
+    initiative_directory = "tests/fixtures/initiative_ingestion/malformed-group-names-negatives"
   }
 
   expect_failures = [terraform_data.initiative_ingestion_contract]

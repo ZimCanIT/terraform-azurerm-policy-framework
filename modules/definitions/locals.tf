@@ -63,10 +63,7 @@ locals {
 
   custom_metadata = {
     for key, definition in local.custom_definitions :
-    key => merge(definition.metadata, {
-      for field, value in { version = local.custom_versions[key] } : field => value
-      if value != null
-    })
+    key => local.custom_versions[key] == null ? definition.metadata : merge(definition.metadata, { version = local.custom_versions[key] })
   }
 
   custom_policy_role_definition_ids = {
