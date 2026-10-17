@@ -39,13 +39,3 @@ locals {
     local.definition_sources.json,
   )
 }
-
-output "definitions" {
-  description = "Canonical policy definition entries keyed by stable catalogue key; pass directly to modules/definitions.definitions."
-  value       = local.definitions
-
-  precondition {
-    condition     = length(local.duplicate_definition_keys) == 0
-    error_message = "Definition catalogue keys must be unique across native HCL and JSON sources (case-insensitive collisions: ${join(", ", local.duplicate_definition_keys)})."
-  }
-}

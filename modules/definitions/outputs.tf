@@ -5,22 +5,18 @@ locals {
       catalogue_key = key
       source_type   = definition.source_type
       display_name  = definition.display_name
-      description   = try(definition.description, "")
-      mode          = definition.mode
-      metadata      = definition.metadata
-      parameters    = definition.parameters
-      policy_rule   = definition.policy_rule
+      # definition_entries already normalises description to a plain string.
+      description = definition.description
+      mode        = definition.mode
+      metadata    = definition.metadata
+      parameters  = definition.parameters
+      policy_rule = definition.policy_rule
       # distinct would error on the built-in null unknown state; only a
       # supplied or defaulted list is deduplicated.
       role_definition_ids = definition.role_definition_ids == null ? null : distinct(definition.role_definition_ids)
 
-      # Built-in entries keep the unknown state for mode, parameters and
-      # candidate roles: null means unknown and an explicitly supplied empty
-      # value means verified absence; custom entries carry their resource
-      # defaults. Supported effects and the capability and governance
-      # declarations are carried for both custom and built-in entries: null
-      # means unknown, an explicitly supplied empty collection means verified
-      # absence, and supplied values are preserved verbatim.
+      # Unknown-versus-verified-absence semantics for these fields are set in
+      # locals.tf definition_entries and passed through unchanged.
       supported_effects       = definition.supported_effects
       supported_overrides     = definition.supported_overrides
       selectors               = definition.selectors

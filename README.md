@@ -1,107 +1,103 @@
 # Azure Policy Framework for Terraform
 
-Azure Policy Framework is the foundation for a composite Terraform module for Azure Policy governance. It is designed to provision definitions, initiatives, assignments, managed identity and RBAC, remediation tasks and exemptions through one reusable package.
+A composite Terraform module for Azure Policy governance at enterprise scale. It turns a portable policy catalogue into definitions, initiatives, typed assignments, managed identity and least-privilege RBAC, explicit remediation requests and governed exemptions, with governance ownership recorded alongside every control.
 
-The project follows the proposed architecture from [Architecting Azure Policy Governance at Enterprise Scale, Part 1](https://zimcanit.com/articles/azure-policy-at-scale-part-1/) and forms the foundation for Part 2.
+The design follows [Architecting Azure Policy Governance at Enterprise Scale, Part 1](https://zimcanit.com/articles/azure-policy-at-scale-part-1/).
 
-## Current status
+## Usage
 
-`modules/definitions` is implemented: it creates custom Azure Policy
-definitions, passes built-in references through a canonical contract, and has
-local mocked contract tests. `modules/catalogue` is implemented as the
-provider-free source-adapter boundary, the only file-reading boundary in the
-package: it ingests native HCL and flat JSON policy libraries, validates the
-source envelope, and emits canonical `definitions` and `initiatives` outputs
-plus a non-sensitive `source_summary`. Both modules include runnable examples.
-Their Terraform test suites are owner-run, and no result here is claimed as
-independent verification. The remaining child modules (initiatives, behaviour
-resolution, assignments, identity/RBAC, remediations and exemptions), live
-Azure integration and Registry release work are outstanding, and
-repository-wide CI is intentionally deferred.
+```hcl
+module "policy" {
+  source = "ZimCanIT/policy-framework/azurerm"
 
-## Intended capabilities
+  catalogue = {
+    custom_definition_directory  = "${path.root}/catalogue/custom-definitions"
+    built_in_reference_directory = "${path.root}/catalogue/built-in-references"
+    initiative_directory         = "${path.root}/catalogue/initiatives"
+  }
 
-- JSON directory ingestion and HCL authoring through a canonical model, including built-in references identified by stable Azure definition IDs.
-- Bulk orchestration of definitions, initiatives and assignments, with independently usable submodules.
-- Typed scopes for management groups, subscriptions, resource groups and resources, with parameter and effect validation where technically possible.
-- Initiative groups, stable member references, explicit version choices and detection of incompatible parameter contracts.
-- Assignment parameters, enforcement, exclusions, non-compliance messages, selectors and supported effect/version overrides.
-- Effective behaviour resolved before managed identity and RBAC decisions, with declared roles deduplicated and granted at explicit scopes.
-- Explicit remediation requests and auditable exemptions, including ownership and expiry metadata.
-- Reviewable outputs for scopes, versions, effective behaviour and identity/RBAC requirements.
+  assignments = {
+    tag-baseline = {
+      target          = { initiative_key = "tag-governance", reference_id = "tag-baseline" }
+      scope           = { type = "management_group", id = "/providers/Microsoft.Management/managementGroups/landing-zones" }
+      effect          = "Modify"
+      version_binding = "unversioned"
+      governance      = { owner = "platform-governance", requirement_id = "REQ-TAG-001" }
+    }
+  }
 
-AzureRM is the intended primary provider, and AzAPI is used selectively for documented provider gaps.
-
-## Architecture and ownership
-
-The package root will expose the composite module. Consumer root configurations will supply provider configuration, backends, environment-specific scope IDs and parameter values. Each consumer root configuration owns its state; calling a child module does not create a separate state.
-
-The article's content and ownership layout is represented by:
-
-```text
-catalogue/
-  built-in-references/
-  custom-definitions/
-  initiatives/
-assignments/
-  organisation/
-  platform/
-  landing-zones/
-  subscriptions/
-exemptions/
-remediation/
-tests/
-environments/
+  requirements = {
+    tag-governance = {
+      owner           = "platform-governance"
+      control_keys    = ["tag-governance"]
+      assignment_keys = ["tag-baseline"]
+      status          = "approved"
+    }
+  }
+}
 ```
 
-These categories illustrate deployment ownership. They do not require a particular landing-zone hierarchy. Resource-group and resource assignments use the same scope contract, irrespective of the folder used to organise them.
+The caller owns the provider configuration, backend and state. The module never prescribes a management-group hierarchy and never reads tenant values from source files; scope IDs arrive through variables.
 
-Reusable implementation belongs under `modules/`, with boundaries for catalogue normalisation, definitions, initiatives, behaviour resolution, assignments, identity/RBAC, remediations and exemptions. The implemented catalogue module adapts native HCL objects and decoded flat JSON directories into canonical `definitions` and `initiatives` envelopes. The implemented definitions module consumes those canonical objects and creates custom definitions or passes built-in references through. Resource modules then consume the resolved contract. Environment data remains separate from reusable policy content.
+## What it provides
 
-State boundaries may separate content, assignments and operational requests. Cross-state consumers must receive explicit IDs and schema/version contracts. Remediation approvals and execution evidence belong in operational workflows; they are not implied by assignment creation.
+| Layer | Module | Responsibility |
+| --- | --- | --- |
+| Control catalogue | `modules/catalogue` | Only file-reading boundary. Adapts JSON directories and native HCL into canonical `definitions` and `initiatives` envelopes. Provider-free. |
+| Content | `modules/definitions`, `modules/initiatives` | Custom definitions, built-in pass-through by stable Azure ID, initiative composition with groups, parameters and version choices. |
+| Behaviour | `modules/behaviour-resolution` | Effective effect, version, identity requirement and remediation eligibility per assignment. Provider-free. |
+| Assignment topology | `modules/assignments` | Typed management-group, subscription, resource-group and resource assignments with parameters, enforcement, exclusions, selectors, overrides and messages. |
+| Operations | `modules/identity-rbac`, `modules/remediations`, `modules/exemptions` | Assignment identities and deduplicated role grants at explicit scopes, explicit remediation requests, governed exemptions with expiry. |
+| Governance | `governance/requirements-and-ownership` | Requirement ownership and traceability to controls and assignments. Provider-free. |
 
-## Development checks
+Each child module is independently usable and validates its own inputs. Stable catalogue and assignment keys drive deterministic Azure names; no random suffixes are generated.
 
-GitHub Actions is the planned CI/CD platform. Workflows and pre-commit hooks are architectural scope only and have not been implemented. The future formatting gate will run `terraform fmt -check -diff` against maintained Terraform sources, excluding `docs/` and downloaded provider/module caches.
+## Inputs
 
-Local pre-commit hooks will provide early formatting feedback. GitHub Actions will independently enforce the same checks on pull requests, regardless of whether contributors install local hooks. The implemented catalogue and definitions modules have local formatting and contract-test coverage; the broader repository is not yet a validated composite module.
+| Name | Type | Purpose |
+| --- | --- | --- |
+| `catalogue` | object | Source directories and native HCL entries for the catalogue adapter. |
+| `definitions`, `initiatives` | any | Canonical entries merged over the catalogue output; a matching key overrides the catalogue record. |
+| `assignments` | any | Assignment intent keyed by stable assignment key. |
+| `remediation_requests`, `discovery_evidence` | any | Explicit remediation operations and their discovery evidence. |
+| `exemptions`, `evaluation_time` | any, string | Governed exemption requests and the fixed RFC3339 instant used to classify expiry. |
+| `requirements`, `external_control_keys`, `external_assignment_keys` | map(object), set(string) | Governance requirements and references declared as externally managed. |
 
-## CI/CD scope
+Policy payload inputs are `any` because every key carries its own parameter and rule shapes. Each child module validates its keys and names the offending key and rule in its diagnostics.
 
-| Stage | Scope and gate |
+## Outputs
+
+`definitions`, `initiatives`, `resolved_assignments`, `lifecycle_resource_ids`, `governance`, `remediations`, `exemptions`, `plan_summary` and `replacement_review`. Resource IDs for assignments, identities, role grants, remediations and exemptions are in `lifecycle_resource_ids`.
+
+## Examples
+
+| Example | Deploys |
 | --- | --- |
-| Current implementation | The catalogue and definitions modules have local `terraform test` coverage; no executable CI workflow or hooks exist yet. |
-| Remaining module implementation, required before release | Add `terraform init -backend=false` and `terraform validate` for each supported module and example root; extend `terraform test` across modules and hand-offs; add JSON, documentation and secret checks. |
-| Azure integration, required before release | Dedicated test scopes and workload identity federation; verify provider behaviour, all supported scopes, identities, roles, exemptions and explicit remediation. Clean up test resources and retain evidence. |
-| Consumer deployment | Environment-specific root configurations produce reviewed plans. Protected GitHub environments gate apply, using the reviewed plan and concurrency controls per state. Remediation requires a separate approved operation. |
-| Registry release | Publish only tested semantic versions after documentation, compatibility and migration checks. Registry publication is separate from deployment into Azure. |
+| [`examples/minimal-audit-assignment`](examples/minimal-audit-assignment/README.md) | One built-in Audit assignment at subscription scope. No identity, no mutation. |
+| [`examples/complete-policy-lifecycle`](examples/complete-policy-lifecycle/README.md) | Catalogue through custom Modify definition, initiative, resource-group assignment with user-assigned identity and least-privilege grant, explicit remediation and a governed exemption against a disposable target. |
 
-Policy tests must cover incompatible initiative parameters, missing or invalid assignment parameters, scope mismatch, effect overrides, role scope selection, stable keys and remediation opt-in. Provider-backed tests are needed where local validation cannot establish Azure behaviour.
+Each example README covers prerequisites, inputs, run sequence, expected outputs and cleanup. Child modules carry their own single-module examples under `modules/<module>/examples/`.
 
-## Publication requirements
+## Supported versions
 
-Before the first Registry release:
+Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`. The catalogue, behaviour-resolution and governance modules need Terraform only. Consumer roots should commit their own provider lock file.
 
-1. Implement the composite root and remaining public submodules with documented inputs, outputs, validations and provider requirements.
-2. Supply runnable JSON, HCL, mixed initiative and operational examples with synthetic environment values.
-3. Complete automated validation and Azure integration tests; document supported versions and known limitations.
-4. Publish the source in a public GitHub repository named `terraform-azurerm-policy-framework`.
-5. Provide a repository description and a tested semantic version release tag, such as `v0.1.0`, before registering the module.
+## Composition ordering on first apply
 
-See HashiCorp's [publication requirements](https://developer.hashicorp.com/terraform/registry/modules/publish) and [standard module structure](https://developer.hashicorp.com/terraform/language/modules/develop/structure).
+When one configuration creates custom definitions or initiatives and also assigns them with managed identities and role grants, apply the content layer first, then the assignment and grant layer. Applies where the content already exists are unaffected.
 
-## Contributing and references
+## Migration and replacement
 
-Use British English, plain headings and concise explanations. Keep architecture changes traceable to governance requirements. Do not include environment credentials or private policy data in examples.
+Stable keys and deterministic names are part of the public contract. Changing a key, scope, identity strategy or grant scope replaces an Azure resource. The `replacement_review` output lists the attributes involved. A release that changes them carries a migration note naming the old and new address and any import or state move required.
 
-Reference material and local working records under `docs/` are ignored by this repository. Public usage and compatibility documentation must therefore live in the root README, module READMEs and examples.
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for validation commands, CI gates and publication requirements.
 
 ## Acknowledgements
 
-Thank you to [Gettek](https://github.com/gettek) for the [Terraform Azure Policy as Code module](https://github.com/gettek/terraform-azurerm-policy-as-code), which inspired this project. Its approach to reusable policy definitions, initiative composition, assignments, role extraction, remediation and exemptions helped shape the architecture of Azure Policy Framework.
-
-The design also draws on experience reviewing an offline Sigma implementation, particularly its bulk ingestion of policy JSON.
+Thank you to [Gettek](https://github.com/gettek) for the [Terraform Azure Policy as Code module](https://github.com/gettek/terraform-azurerm-policy-as-code), which inspired this project.
 
 ## Licence
 
-See [LICENSE](LICENSE). Any reused third-party source must retain its applicable notices and attribution.
+See [LICENSE](LICENSE).

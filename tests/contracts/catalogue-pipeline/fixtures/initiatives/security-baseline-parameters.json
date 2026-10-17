@@ -1,0 +1,8 @@
+{
+  "allowedLocations": {
+    "type": "Array",
+    "metadata": {
+      "displayName": "Allowed locations"
+    }
+  }
+}

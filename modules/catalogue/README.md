@@ -3,14 +3,20 @@
 `catalogue` is the source-adapter boundary for the framework. It accepts
 native Terraform HCL and constrained JSON policy-library inputs, then produces
 canonical definition entries for `modules/definitions` and canonical
-initiative entries for the future `modules/initiatives`. It does not configure
+initiative entries for `modules/initiatives`. It does not configure
 providers, perform Azure lookups or create Azure resources.
 
 Catalogue is the only file-reading boundary in the package. It declares and
 preserves capability and governance data but does not make behaviour, version,
 role or remediation decisions. The source-envelope contract below is
-self-contained and matches the `hcl.tf`, `json.tf` and `initiatives.tf`
-adapters together with the shared definition model in `definitions.tf`.
+self-contained and matches the source adapters and pipeline stage files:
+`hcl.tf` (native HCL adapter), `json-sources.tf` (shared directory discovery
+and decode), `json.tf` (JSON companions and raw entries), `initiatives.tf`
+(initiative companions and normalisation), `initiatives-validation.tf`,
+`initiatives-references.tf` and `initiatives-groups.tf` (named validation
+rules), `diagnostics.tf` (attributable failure text), `guards.tf` (blocking
+preconditions) and `definitions.tf` (the shared definition model and canonical
+projection).
 
 ## Source-envelope contract
 
@@ -186,7 +192,7 @@ envelope rules that apply to every JSON source directory.
 | Output | Contents |
 | --- | --- |
 | `definitions` | Canonical definition entries keyed by stable catalogue key, ready to pass directly to `modules/definitions`. |
-| `initiatives` | Canonical initiative envelopes keyed by stable catalogue key, preserved for the future `modules/initiatives` resource module. |
+| `initiatives` | Canonical initiative envelopes keyed by stable catalogue key, consumed by `modules/initiatives` for composition and resource creation. |
 | `source_summary` | Non-sensitive provenance with exactly one record per actual entry (`catalogue_key`, `source_type`, `authoring_format`, `source_path`, `companion_source_path`). Companions are attached to their parent record, never emitted separately. |
 
 `definitions` excludes catalogue file paths and ingestion mechanics, so it can
@@ -199,19 +205,17 @@ roots. Portable catalogue content must not embed a real tenant ID.
 
 ## Examples
 
-Runnable, provider-free examples with synthetic values:
+One runnable, provider-free example with synthetic values:
 
-- [hcl](examples/hcl/README.md): native HCL definitions and an initiative.
-- [json](examples/json/README.md): a JSON library with a parameter companion
-  and a built-in reference.
-- [mixed](examples/mixed/README.md): native HCL plus a JSON definition
-  directory in one call.
+- [mixed](examples/mixed/README.md): a flat JSON library (built-in reference,
+  custom definitions with a parameter companion, initiative) merged with native
+  HCL entries in one call.
 
-Each example validates with backend-disabled initialisation:
+It validates with backend-disabled initialisation:
 
 ```powershell
-terraform -chdir=modules/catalogue/examples/hcl init -backend=false -input=false
-terraform -chdir=modules/catalogue/examples/hcl validate -no-color
+terraform -chdir=modules/catalogue/examples/mixed init -backend=false -input=false
+terraform -chdir=modules/catalogue/examples/mixed validate -no-color
 ```
 
 ## Compatibility
@@ -219,12 +223,13 @@ terraform -chdir=modules/catalogue/examples/hcl validate -no-color
 Catalogue requires Terraform `>= 1.12.0`; the source adapters rely on nullable
 validation guards and validation short-circuiting introduced in that release.
 Only Terraform 1.15.9 has been exercised locally, so the minimum is declared
-but untested at that version. `modules/definitions` keeps its independent
-Terraform `>= 1.7.0` and AzureRM `>= 5.0.0, < 6.0.0` constraint.
+but untested at that version. `modules/definitions` declares Terraform
+`>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0` independently.
 
 ## Tests
 
-Run the offline module and contract suites from the repository root:
+Run the offline module suite and the producer-pipeline contract root from the
+repository root:
 
 ```powershell
 terraform fmt -check -recursive modules/catalogue
@@ -232,16 +237,14 @@ terraform -chdir=modules/catalogue init -backend=false -input=false
 terraform -chdir=modules/catalogue validate -no-color
 terraform -chdir=modules/catalogue test
 
-terraform -chdir=tests/contracts/catalogue init -backend=false -input=false
-terraform -chdir=tests/contracts/catalogue test
-
-terraform -chdir=tests/contracts/catalogue-to-definitions init -backend=false -input=false
-terraform -chdir=tests/contracts/catalogue-to-definitions test
+terraform -chdir=tests/contracts/catalogue-pipeline init -backend=false -input=false
+terraform -chdir=tests/contracts/catalogue-pipeline test
 ```
 
-The tests cover native HCL preservation, JSON normalisation, source-directory
-and companion rules, malformed and non-object containers, companion type
-preservation, HCL/JSON parity, initiative member and group validation,
-provenance accuracy, bulk ingestion and the provider-free emission of the
-definitions contract envelope. `tests/contracts/catalogue-to-definitions`
-wires catalogue into `modules/definitions` with a mocked AzureRM provider.
+The module suite covers native HCL preservation, JSON normalisation,
+source-directory and companion rules, malformed and non-object containers (one
+fixture directory per family, one file per case), companion type preservation,
+HCL/JSON parity, initiative member and group validation, provenance accuracy and
+bulk ingestion. `tests/contracts/catalogue-pipeline` wires catalogue into
+`modules/definitions`, `modules/initiatives` and `modules/behaviour-resolution`
+with a mocked AzureRM provider and asserts the hand-off envelopes end to end.

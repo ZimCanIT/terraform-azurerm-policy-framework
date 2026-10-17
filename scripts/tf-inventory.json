@@ -1,0 +1,94 @@
+{
+  "description": "Shared root and version inventory consumed by .github/workflows/ci.yml and .github/workflows/compatibility.yml. Every listed root exists in the working tree. Module suites live beside their module; the three contract roots cover the catalogue producer pipeline, the resolver's four consumers and the composite root. Examples are deployment roots and carry no suites.",
+  "versions": {
+    "terraform_min": "1.12.0",
+    "terraform_normal": "1.15.9",
+    "terraform_constraint": ">= 1.12.0",
+    "azurerm_min": "5.0.0",
+    "azurerm_normal": "5.5.0",
+    "azurerm_constraint": ">= 5.0.0, < 6.0.0"
+  },
+  "groups": {
+    "format_roots": [
+      "."
+    ],
+    "validate_roots": [
+      ".",
+      "governance/requirements-and-ownership",
+      "modules/catalogue",
+      "modules/definitions",
+      "modules/initiatives",
+      "modules/behaviour-resolution",
+      "modules/assignments",
+      "modules/identity-rbac",
+      "modules/remediations",
+      "modules/exemptions",
+      "modules/catalogue/examples/mixed",
+      "modules/definitions/examples/mixed-input",
+      "modules/assignments/examples/typed-scopes",
+      "modules/remediations/examples/explicit-operations",
+      "modules/exemptions/examples/basic",
+      "modules/identity-rbac/examples/resolved",
+      "examples/minimal-audit-assignment",
+      "examples/complete-policy-lifecycle",
+      "tests/contracts/catalogue-pipeline",
+      "tests/contracts/behaviour-resolution",
+      "tests/contracts/root-composition"
+    ],
+    "test_roots": [
+      "governance/requirements-and-ownership",
+      "modules/catalogue",
+      "modules/definitions",
+      "modules/initiatives",
+      "modules/behaviour-resolution",
+      "modules/assignments",
+      "modules/identity-rbac",
+      "modules/remediations",
+      "modules/exemptions",
+      "tests/contracts/catalogue-pipeline",
+      "tests/contracts/behaviour-resolution",
+      "tests/contracts/root-composition"
+    ],
+    "provider_backed_roots": [
+      ".",
+      "modules/definitions",
+      "modules/initiatives",
+      "modules/assignments",
+      "modules/identity-rbac",
+      "modules/remediations",
+      "modules/exemptions",
+      "modules/definitions/examples/mixed-input",
+      "modules/assignments/examples/typed-scopes",
+      "modules/identity-rbac/examples/resolved",
+      "modules/remediations/examples/explicit-operations",
+      "modules/exemptions/examples/basic",
+      "examples/minimal-audit-assignment",
+      "examples/complete-policy-lifecycle",
+      "tests/contracts/catalogue-pipeline",
+      "tests/contracts/behaviour-resolution",
+      "tests/contracts/root-composition"
+    ],
+    "provider_backed_test_roots": [
+      "modules/definitions",
+      "modules/initiatives",
+      "modules/assignments",
+      "modules/identity-rbac",
+      "modules/remediations",
+      "modules/exemptions",
+      "tests/contracts/catalogue-pipeline",
+      "tests/contracts/behaviour-resolution",
+      "tests/contracts/root-composition"
+    ],
+    "provider_free_roots": [
+      "governance/requirements-and-ownership",
+      "modules/catalogue",
+      "modules/behaviour-resolution",
+      "modules/catalogue/examples/mixed"
+    ],
+    "provider_free_test_roots": [
+      "governance/requirements-and-ownership",
+      "modules/catalogue",
+      "modules/behaviour-resolution"
+    ]
+  }
+}
