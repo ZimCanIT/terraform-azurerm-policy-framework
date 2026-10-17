@@ -1,14 +1,16 @@
 locals {
   # Grammar constants. Variable validations read these, so they must stay
   # independent of every variable. The scope pattern map is the only definition
-  # of Azure scope grammar in this module.
+  # of Azure scope grammar in this module. A resource scope names a provider, a
+  # type and a resource, as in behaviour-resolution, identity-rbac and
+  # assignments, so an ID is accepted or rejected alike at each hand-off.
   scope_types = ["management_group", "subscription", "resource_group", "resource"]
 
   scope_patterns = {
     management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
     subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
     resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
-    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/.+$"
+    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
   }
 
   # Any single scope, built from the map above so that the role scope and policy

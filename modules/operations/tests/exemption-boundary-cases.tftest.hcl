@@ -56,6 +56,23 @@ run "reject_malformed_scope_id" {
   expect_failures = [terraform_data.exemption_contract_guard]
 }
 
+run "reject_resource_scope_without_a_resource_name" {
+  command = plan
+  # accepts_contained_scopes_in_both_families accepts a named resource under a
+  # subscription assignment, so the missing resource name is the only defect.
+  variables {
+    exemptions = { bare_resource_type = {
+      request_mode         = "create"
+      assignment_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
+      scope                = { type = "resource", id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/apps/providers/Microsoft.Storage/storageAccounts" }
+      owner                = "platform-team", reason = "A resource scope names the resource"
+      approval_reference   = "APR-BARE-TYPE", category = "Mitigated"
+      compensating_control = "Manual review", expires_on = "2027-01-31T00:00:00Z"
+    } }
+  }
+  expect_failures = [terraform_data.exemption_contract_guard]
+}
+
 run "reject_unsupported_selectors" {
   command = plan
   variables {

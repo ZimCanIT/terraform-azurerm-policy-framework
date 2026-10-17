@@ -28,7 +28,7 @@ resolved_assignments = {
 }
 ```
 
-Supported scope types are `management_group`, `subscription`, `resource_group` and `resource`. One scope grammar serves every check in the module. An operation scope must equal the resolved assignment scope or sit inside it: a resource group or resource inside a subscription, or a resource inside a resource group. A management-group assignment scope has no comparable lineage and needs an exact match.
+Supported scope types are `management_group`, `subscription`, `resource_group` and `resource`. One scope grammar serves every check in the module, including the `resource_id` of each discovery target. A `resource` scope ID names the provider, the type and the resource, as in `/subscriptions/<subscription-id>/resourceGroups/<group>/providers/Microsoft.Storage/storageAccounts/<name>`; a bare resource type is rejected. An operation scope must equal the resolved assignment scope or sit inside it: a resource group or resource inside a subscription, or a resource inside a resource group. A management-group assignment scope has no comparable lineage and needs an exact match.
 
 ## Remediations
 

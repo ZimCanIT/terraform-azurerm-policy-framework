@@ -35,7 +35,7 @@ For an initiative target, `resolved.members` and `resolved.member_reference_ids`
 
 The nested `intent` and `resolved` containers are exact contracts. Legacy flattened fields such as `target`, `scope`, `parameters`, `selectors`, `overrides`, `rollout` and `enforcement_mode` are rejected.
 
-`scope.type` must be one of `management_group`, `subscription`, `resource_group` or `resource`. Management-group assignment names are limited to 24 characters; other scopes are limited to 64. Long or colliding deterministic bases receive an eight-character SHA-1 key suffix, so changing the assignment key can replace the Azure assignment.
+`scope.type` must be one of `management_group`, `subscription`, `resource_group` or `resource`, and `scope.id` must be the matching Azure scope ID. A `resource` scope ID names the provider, the type and the resource, as in `/subscriptions/<subscription-id>/resourceGroups/<group>/providers/Microsoft.Storage/storageAccounts/<name>`; a bare resource type is rejected. Management-group assignment names are limited to 24 characters; other scopes are limited to 64. Long or colliding deterministic bases receive an eight-character SHA-1 key suffix, so changing the assignment key can replace the Azure assignment.
 
 ### Output
 

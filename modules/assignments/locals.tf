@@ -5,16 +5,18 @@ locals {
   rfc3339_pattern           = "^[0-9]{4}-[0-9]{2}-[0-9]{2}T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$"
 
   # Scope grammar, written once for this module. Variable validations read
-  # these constants, so they must stay independent of every variable. A resource
-  # scope here needs a provider and a type segment; behaviour-resolution and
-  # identity-rbac apply a stricter form that also requires a resource name.
+  # these constants, so they must stay independent of every variable.
+  # Subscription IDs are GUIDs, as Azure issues them, and a resource scope names
+  # a provider, a type and a resource. behaviour-resolution and identity-rbac
+  # write the same grammar, so an ID is accepted or rejected alike at each
+  # hand-off.
   scope_types = ["management_group", "subscription", "resource_group", "resource"]
 
   scope_patterns = {
     management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
     subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
     resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
-    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/.+/.+$"
+    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
   }
 
   assignment_entries = {
