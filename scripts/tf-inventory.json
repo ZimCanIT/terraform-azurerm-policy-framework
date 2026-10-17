@@ -1,5 +1,5 @@
 {
-  "description": "Shared root and version inventory consumed by .github/workflows/ci.yml and .github/workflows/compatibility.yml. Every listed root exists in the working tree. Module suites live beside their module; the three contract roots cover the catalogue producer pipeline, the resolver's three consumers and the composite root. Examples are deployment roots and carry no suites.",
+  "description": "Shared root and version inventory consumed by .github/workflows/ci.yml and .github/workflows/compatibility.yml. Every listed root exists in the working tree. Module suites live beside their module; the four contract roots cover the catalogue producer pipeline, the resolver's three consumers, the state hand-offs and the composite root. Examples are deployment roots and carry no suites. The shared module of the state-separated example is validated through each root that calls it.",
   "versions": {
     "terraform_min": "1.12.0",
     "terraform_normal": "1.15.9",
@@ -28,9 +28,15 @@
       "modules/identity-rbac/examples/resolved",
       "examples/minimal-audit-assignment",
       "examples/complete-policy-lifecycle",
+      "examples/state-separated-lifecycle/target",
+      "examples/state-separated-lifecycle/content",
+      "examples/state-separated-lifecycle/identity-rbac",
+      "examples/state-separated-lifecycle/assignments",
+      "examples/state-separated-lifecycle/operations",
       "tests/contracts/catalogue-pipeline",
       "tests/contracts/behaviour-resolution",
-      "tests/contracts/root-composition"
+      "tests/contracts/root-composition",
+      "tests/contracts/state-handoffs"
     ],
     "test_roots": [
       "governance/requirements-and-ownership",
@@ -42,7 +48,8 @@
       "modules/operations",
       "tests/contracts/catalogue-pipeline",
       "tests/contracts/behaviour-resolution",
-      "tests/contracts/root-composition"
+      "tests/contracts/root-composition",
+      "tests/contracts/state-handoffs"
     ],
     "provider_backed_roots": [
       ".",
@@ -56,9 +63,15 @@
       "modules/operations/examples/explicit-operations",
       "examples/minimal-audit-assignment",
       "examples/complete-policy-lifecycle",
+      "examples/state-separated-lifecycle/target",
+      "examples/state-separated-lifecycle/content",
+      "examples/state-separated-lifecycle/identity-rbac",
+      "examples/state-separated-lifecycle/assignments",
+      "examples/state-separated-lifecycle/operations",
       "tests/contracts/catalogue-pipeline",
       "tests/contracts/behaviour-resolution",
-      "tests/contracts/root-composition"
+      "tests/contracts/root-composition",
+      "tests/contracts/state-handoffs"
     ],
     "provider_backed_test_roots": [
       "modules/content",
@@ -67,7 +80,8 @@
       "modules/operations",
       "tests/contracts/catalogue-pipeline",
       "tests/contracts/behaviour-resolution",
-      "tests/contracts/root-composition"
+      "tests/contracts/root-composition",
+      "tests/contracts/state-handoffs"
     ],
     "provider_free_roots": [
       "governance/requirements-and-ownership",
