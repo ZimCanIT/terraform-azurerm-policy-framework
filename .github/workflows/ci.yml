@@ -82,3 +82,18 @@ jobs:
         run: python scripts/repository_gate.py
       - name: Check whitespace
         run: git diff --check
+
+  # Single required status for branch protection: green only when every job
+  # above succeeded, so matrix entries can change without editing the rule.
+  complete:
+    name: ci complete
+    needs: [format, validate, test, gates]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every gate job succeeded
+        env:
+          RESULTS: ${{ toJson(needs) }}
+        run: |
+          echo "$RESULTS"
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' >/dev/null
