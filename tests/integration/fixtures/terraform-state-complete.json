@@ -1,0 +1,110 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "mode": "managed",
+          "type": "azurerm_resource_group",
+          "address": "azurerm_resource_group.target",
+          "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture" }
+        },
+        {
+          "mode": "managed",
+          "type": "azurerm_storage_account",
+          "address": "azurerm_storage_account.target",
+          "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Storage/storageAccounts/zctfpfixturestore" }
+        }
+      ],
+      "child_modules": [
+        {
+          "address": "module.framework",
+          "resources": [],
+          "child_modules": [
+            {
+              "address": "module.framework.module.definitions",
+              "resources": [
+                {
+                  "mode": "managed",
+                  "type": "azurerm_policy_definition",
+                  "address": "module.framework.module.definitions.azurerm_policy_definition.this[\"add-costcentre-tag\"]",
+                  "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policyDefinitions/add-costcentre-tag" }
+                }
+              ],
+              "child_modules": []
+            },
+            {
+              "address": "module.framework.module.initiatives",
+              "resources": [
+                {
+                  "mode": "managed",
+                  "type": "azurerm_policy_set_definition",
+                  "address": "module.framework.module.initiatives.azurerm_policy_set_definition.subscription[\"tag-governance\"]",
+                  "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policySetDefinitions/tag-governance" }
+                }
+              ],
+              "child_modules": []
+            },
+            {
+              "address": "module.framework.module.assignments",
+              "resources": [
+                {
+                  "mode": "managed",
+                  "type": "azurerm_resource_group_policy_assignment",
+                  "address": "module.framework.module.assignments.azurerm_resource_group_policy_assignment.this[\"modify-tag-rg\"]",
+                  "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/modify-tag-rg" }
+                }
+              ],
+              "child_modules": []
+            },
+            {
+              "address": "module.framework.module.identity_rbac",
+              "resources": [
+                {
+                  "mode": "managed",
+                  "type": "azurerm_user_assigned_identity",
+                  "address": "module.framework.module.identity_rbac.azurerm_user_assigned_identity.this[\"modify-tag-rg\"]",
+                  "values": {
+                    "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/irb-fixture",
+                    "principal_id": "77777777-7777-7777-7777-777777777777"
+                  }
+                },
+                {
+                  "mode": "managed",
+                  "type": "azurerm_role_assignment",
+                  "address": "module.framework.module.identity_rbac.azurerm_role_assignment.this[\"modify-tag-rg|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]",
+                  "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/roleAssignments/88888888-8888-8888-8888-888888888888" }
+                }
+              ],
+              "child_modules": []
+            },
+            {
+              "address": "module.framework.module.remediations",
+              "resources": [
+                {
+                  "mode": "managed",
+                  "type": "azurerm_resource_group_policy_remediation",
+                  "address": "module.framework.module.remediations.azurerm_resource_group_policy_remediation.this[\"remediate-tag-rg\"]",
+                  "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.PolicyInsights/remediations/remediate-tag-rg" }
+                }
+              ],
+              "child_modules": []
+            },
+            {
+              "address": "module.framework.module.exemptions",
+              "resources": [
+                {
+                  "mode": "managed",
+                  "type": "azurerm_resource_group_policy_exemption",
+                  "address": "module.framework.module.exemptions.azurerm_resource_group_policy_exemption.this[\"exempt-tag-rg-uat\"]",
+                  "values": { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyExemptions/exempt-tag-rg-uat" }
+                }
+              ],
+              "child_modules": []
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

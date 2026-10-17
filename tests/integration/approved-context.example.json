@@ -1,0 +1,7 @@
+{
+  "subscriptionId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "tenantId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "cloud": "AzureCloud",
+  "userName": "operator@example.invalid",
+  "userType": "user"
+}

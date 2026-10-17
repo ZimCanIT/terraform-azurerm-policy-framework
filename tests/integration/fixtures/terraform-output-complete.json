@@ -1,0 +1,44 @@
+{
+  "lifecycle_resource_ids": {
+    "sensitive": false,
+    "type": ["object", {}],
+    "value": {
+      "assignments": {
+        "modify-tag-rg": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/modify-tag-rg",
+        "planned-assignment": null
+      },
+      "identities": {
+        "modify-tag-rg": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/irb-fixture"
+      },
+      "principals": {
+        "modify-tag-rg": "77777777-7777-7777-7777-777777777777"
+      },
+      "role_assignments": {
+        "modify-tag-rg": {
+          "tags|/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/roleDefinitions/4a9ae827-6dc8-4573-8ac7-8239d42aa03f|/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/roleAssignments/88888888-8888-8888-8888-888888888888"
+        },
+        "planned-assignment": {
+          "tags|planned-role-definition|planned-scope": null
+        }
+      },
+      "remediations": {
+        "remediate-tag-rg": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.PolicyInsights/remediations/remediate-tag-rg"
+      },
+      "exemptions": {
+        "exempt-tag-rg-uat": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyExemptions/exempt-tag-rg-uat"
+      }
+    }
+  },
+  "definition_ids": {
+    "sensitive": false,
+    "type": ["map", "string"],
+    "value": {
+      "add-costcentre-tag": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policyDefinitions/add-costcentre-tag"
+    }
+  },
+  "set_definition_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policySetDefinitions/tag-governance"
+  }
+}
