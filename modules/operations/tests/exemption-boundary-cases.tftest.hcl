@@ -2,7 +2,7 @@ mock_provider "azurerm" {}
 
 variables {
   evaluation_time = "2026-09-15T00:00:00Z"
-  assignments = {
+  resolved_assignments = {
     subscription = {
       assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
       intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
@@ -38,7 +38,7 @@ run "reject_scope_outside_resolved_assignment" {
       compensating_control = "Manual review", expires_on = "2027-01-31T00:00:00Z"
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "reject_malformed_scope_id" {
@@ -53,7 +53,7 @@ run "reject_malformed_scope_id" {
       compensating_control = "Manual review", expires_on = "2027-01-31T00:00:00Z"
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "reject_unsupported_selectors" {
@@ -69,13 +69,13 @@ run "reject_unsupported_selectors" {
       selectors            = [{ kind = "resourceLocation", in = ["westeurope"] }]
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "reject_unknown_member_inventory_for_targeting" {
   command = plan
   variables {
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
         intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
@@ -92,13 +92,13 @@ run "reject_unknown_member_inventory_for_targeting" {
       policy_definition_reference_ids = ["member-not-known"]
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "reject_duplicate_member_targeting" {
   command = plan
   variables {
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
         intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
@@ -115,5 +115,22 @@ run "reject_duplicate_member_targeting" {
       policy_definition_reference_ids = ["member-a", "member-a"]
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
+}
+
+# The member inventory rule lives at the shared input, so one disagreeing record
+# is rejected whichever operation family would read it.
+run "reject_member_inventory_disagreement_at_the_shared_input" {
+  command = plan
+  variables {
+    resolved_assignments = {
+      subscription = {
+        assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
+        intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
+        resolved   = { members = [{ reference_id = "member-a" }, { reference_id = "member-b" }], member_reference_ids = ["member-b", "member-a"] }
+      }
+    }
+    exemptions = {}
+  }
+  expect_failures = [var.resolved_assignments]
 }

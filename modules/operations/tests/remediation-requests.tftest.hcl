@@ -109,7 +109,7 @@ run "reject_ineligible_with_reason" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "reject_blank_eligibility" {
@@ -152,7 +152,7 @@ run "reject_blank_eligibility" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "reject_resource_scope_mismatch" {
@@ -195,7 +195,7 @@ run "reject_resource_scope_mismatch" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "accept_resource_scope_contained" {
@@ -292,7 +292,7 @@ run "reject_blank_policy_definition_id" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "reject_absent_required_fields" {
@@ -515,7 +515,7 @@ run "reject_audit_member_when_modify_member_is_eligible" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "scope_specific_management_group_and_resource_group_payloads" {
@@ -697,5 +697,5 @@ run "approval_and_member_role_scope_gate_execution" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }

@@ -65,7 +65,7 @@ run "unknown_decision_blocks_existing_state" {
       }
     }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "ineligible_decision_blocks_existing_state" {
@@ -87,7 +87,7 @@ run "ineligible_decision_blocks_existing_state" {
       }
     }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "failed_plans_retain_managed_operation" {

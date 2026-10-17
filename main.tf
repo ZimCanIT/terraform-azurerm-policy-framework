@@ -55,14 +55,14 @@ module "governance" {
   external_assignment_keys = var.external_assignment_keys
 }
 
-module "remediations" {
-  source               = "./modules/remediations"
+module "operations" {
+  source               = "./modules/operations"
   resolved_assignments = local.assignment_lifecycle
   # A request that names an assignment created by this configuration cannot
   # know its Azure assignment ID before apply, so the root injects the created
   # ID from the assignment key. Requests whose assignment_key has no created
   # assignment keep the caller's policy_assignment_id unchanged and remain
-  # subject to the remediations module's own fail-closed validation.
+  # subject to the operations module's own fail-closed validation.
   requests = {
     for key, request in var.remediation_requests :
     key => merge(request, {
@@ -70,11 +70,6 @@ module "remediations" {
     })
   }
   discovery_evidence = var.discovery_evidence
-}
-
-module "exemptions" {
-  source          = "./modules/exemptions"
-  assignments     = local.assignment_lifecycle
-  exemptions      = var.exemptions
-  evaluation_time = var.evaluation_time
+  exemptions         = var.exemptions
+  evaluation_time    = var.evaluation_time
 }

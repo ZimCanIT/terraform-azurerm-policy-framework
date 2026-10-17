@@ -6,7 +6,7 @@ run "strict_governance_strings_pass" {
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
 
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = {
           id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
@@ -78,7 +78,7 @@ run "absent_versus_empty_distinction" {
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
 
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = {
           id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
@@ -153,7 +153,7 @@ run "reject_inner_newline_description" {
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
 
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = {
           id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
@@ -190,7 +190,7 @@ run "reject_inner_newline_description" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "reject_leading_space_category" {
@@ -199,7 +199,7 @@ run "reject_leading_space_category" {
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
 
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = {
           id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
@@ -235,7 +235,7 @@ run "reject_leading_space_category" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "reject_empty_description" {
@@ -244,7 +244,7 @@ run "reject_empty_description" {
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
 
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = {
           id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
@@ -281,7 +281,7 @@ run "reject_empty_description" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "lifecycle_modes_and_elapsed_expiry" {
@@ -289,7 +289,7 @@ run "lifecycle_modes_and_elapsed_expiry" {
 
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = {
           id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
@@ -417,7 +417,7 @@ run "reject_elapsed_renewal_without_removal_plan" {
 
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = {
           id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
@@ -446,7 +446,7 @@ run "reject_elapsed_renewal_without_removal_plan" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "all_scope_resource_payloads" {
@@ -454,7 +454,7 @@ run "all_scope_resource_payloads" {
 
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
-    assignments = {
+    resolved_assignments = {
       management_group = {
         assignment = { id = "/providers/Microsoft.Management/managementGroups/platform/providers/Microsoft.Authorization/policyAssignments/mg-policy" }
         intent     = { scope = { type = "management_group", id = "/providers/Microsoft.Management/managementGroups/platform" } }
@@ -543,7 +543,7 @@ run "reject_unknown_or_unrelated_member_targeting" {
 
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
         intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
@@ -566,7 +566,7 @@ run "reject_unknown_or_unrelated_member_targeting" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "reject_malformed_member_reference_collection" {
@@ -574,7 +574,7 @@ run "reject_malformed_member_reference_collection" {
 
   variables {
     evaluation_time = "2026-09-15T00:00:00Z"
-    assignments = {
+    resolved_assignments = {
       subscription = {
         assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
         intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
@@ -597,7 +597,7 @@ run "reject_malformed_member_reference_collection" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "block_unknown_assignment_membership" {
@@ -620,5 +620,5 @@ run "block_unknown_assignment_membership" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }

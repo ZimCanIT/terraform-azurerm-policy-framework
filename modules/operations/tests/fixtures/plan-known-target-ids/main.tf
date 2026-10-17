@@ -20,7 +20,7 @@ locals {
   resource_id     = "${azurerm_resource_group.target.id}/providers/Microsoft.Compute/virtualMachines/example"
 }
 
-module "remediations" {
+module "operations" {
   source = "../../../"
 
   resolved_assignments = {
@@ -70,5 +70,5 @@ module "remediations" {
 }
 
 output "planned_operation_keys" {
-  value = sort(keys(module.remediations.created_operations))
+  value = sort(keys(module.operations.created_operations))
 }

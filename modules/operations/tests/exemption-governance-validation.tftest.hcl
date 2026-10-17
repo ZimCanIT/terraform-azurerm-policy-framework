@@ -2,7 +2,7 @@ mock_provider "azurerm" {}
 
 variables {
   evaluation_time = "2026-09-15T00:00:00Z"
-  assignments = {
+  resolved_assignments = {
     subscription = {
       assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
       intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
@@ -23,7 +23,7 @@ run "missing_owner_blocks_creation" {
       expires_on    = "2027-01-31T00:00:00Z"
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "missing_reason_blocks_creation" {
@@ -38,7 +38,7 @@ run "missing_reason_blocks_creation" {
       expires_on    = "2027-01-31T00:00:00Z"
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "missing_approval_or_ticket_blocks_creation" {
@@ -53,7 +53,7 @@ run "missing_approval_or_ticket_blocks_creation" {
       expires_on    = "2027-01-31T00:00:00Z"
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "missing_compensating_control_blocks_creation" {
@@ -68,7 +68,7 @@ run "missing_compensating_control_blocks_creation" {
       expires_on         = "2027-01-31T00:00:00Z"
     } }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "blank_governance_values_block_independently" {
@@ -105,7 +105,7 @@ run "blank_governance_values_block_independently" {
       }
     }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }
 
 run "missing_and_malformed_expiry_block_active_requests" {
@@ -128,5 +128,5 @@ run "missing_and_malformed_expiry_block_active_requests" {
       }
     }
   }
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.exemption_contract_guard]
 }

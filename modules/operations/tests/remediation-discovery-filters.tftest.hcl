@@ -102,7 +102,7 @@ run "discovery_limit_rejects_filtered_overflow" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }
 
 run "discovery_requires_known_evidence" {
@@ -120,5 +120,5 @@ run "discovery_requires_known_evidence" {
     }
   }
 
-  expect_failures = [terraform_data.contract_guard]
+  expect_failures = [terraform_data.remediation_contract_guard]
 }

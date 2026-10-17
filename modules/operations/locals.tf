@@ -1,4 +1,25 @@
 locals {
+  # Grammar constants. Variable validations read these, so they must stay
+  # independent of every variable. The scope pattern map is the only definition
+  # of Azure scope grammar in this module.
+  scope_types = ["management_group", "subscription", "resource_group", "resource"]
+
+  scope_patterns = {
+    management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
+    subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
+    resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/.+$"
+  }
+
+  # Any single scope, built from the map above so that the role scope and policy
+  # assignment ID patterns cannot drift from the typed scope patterns.
+  any_scope_pattern            = "(${join("|", [for type in local.scope_types : trimsuffix(trimprefix(local.scope_patterns[type], "^"), "$")])})"
+  role_scope_pattern           = "^${local.any_scope_pattern}$"
+  policy_assignment_id_pattern = "^${local.any_scope_pattern}/providers/Microsoft\\.Authorization/policyAssignments/[^/]+$"
+
+  # One view of the resolved assignment records for both operation families. A
+  # blank value means the producer did not supply it; consumers treat blank as
+  # unknown and never as a match.
   resolved_assignment_entries = {
     for key, assignment in var.resolved_assignments :
     key => {
@@ -40,11 +61,24 @@ locals {
     }
   }
 
+  assignment_entries_by_id = {
+    for entry in values(local.resolved_assignment_entries) : entry.assignment_id => entry
+    if entry.assignment_id != ""
+  }
+
   assignment_members_by_reference_id = {
     for key, assignment in local.resolved_assignment_entries :
     key => assignment.members == null ? null : {
       for member in assignment.members : member.reference_id => member
     }
+  }
+
+  # A member list is verified only when both representations are present. The
+  # resolved_assignments variable proves they agree, so no consumer repeats that
+  # check.
+  assignment_member_inventory_known = {
+    for key, assignment in local.resolved_assignment_entries :
+    key => assignment.member_reference_ids != null && assignment.members != null
   }
 
   # One resolved context per request: the referenced assignment, the selected
@@ -64,19 +98,9 @@ locals {
       remediation_reason      = local.request_entries[key].member_reference_id == null ? try(context.assignment.remediation_reason, "") : try(context.member.remediation_reason, "")
       required_roles          = local.request_entries[key].member_reference_id == null ? try(context.assignment.required_roles, null) : try(context.member.required_roles, null)
       policy_definition_id    = local.request_entries[key].member_reference_id == null ? try(context.assignment.policy_definition_id, "") : try(trimspace(context.member.policy_definition_id), "")
-      member_inventory_known  = try(context.assignment.member_reference_ids != null && context.assignment.members != null, false)
+      member_inventory_known  = try(local.assignment_member_inventory_known[local.request_entries[key].assignment_key], false)
     }
   }
-
-  scope_patterns = {
-    management_group = "^/providers/Microsoft.Management/managementGroups/[^/]+$"
-    subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
-    resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
-    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/.+$"
-  }
-
-  policy_assignment_id_pattern = "^(/providers/Microsoft.Management/managementGroups/[^/]+|/subscriptions/[0-9a-fA-F-]{36}(/resourceGroups/[^/]+)?|/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/.+)/providers/Microsoft.Authorization/policyAssignments/[^/]+$"
-  role_scope_pattern           = "^(/providers/Microsoft.Management/managementGroups/[^/]+|/subscriptions/[0-9a-fA-F-]{36}(/resourceGroups/[^/]+)?|/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/.+)$"
 
   filtered_discovery_targets = {
     for key, request in local.request_entries :
@@ -86,16 +110,41 @@ locals {
     ]
   }
 
-  # The subscription or resource-group prefix of a resource or resource-group
-  # request scope, used to prove containment of the resolved assignment scope.
-  request_scope_subscription_ids = {
-    for key, request in local.request_entries :
-    key => contains(["resource", "resource_group"], request.scope_type) ? try(regex("^(?:/subscriptions/[0-9a-fA-F-]{36})", request.scope_id), "") : ""
-  }
+  # Remediation and exemption requests are checked against the resolved
+  # assignment scope by one rule. Keys are prefixed with the request family.
+  scoped_operations = merge(
+    {
+      for key, request in local.request_entries : "remediation/${key}" => {
+        scope_type = request.scope_type
+        scope_id   = request.scope_id
+        assignment = try(local.resolved_assignment_entries[request.assignment_key], null)
+      }
+    },
+    {
+      for key, exemption in local.exemption_entries : "exemption/${key}" => {
+        scope_type = exemption.scope_type
+        scope_id   = exemption.scope_id
+        assignment = local.assignment_matches[key]
+      }
+    }
+  )
 
-  request_scope_resource_group_ids = {
-    for key, request in local.request_entries :
-    key => request.scope_type == "resource" ? try(regex("^(?:/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+)", request.scope_id), "") : ""
+  # An operation scope matches the resolved assignment scope exactly or sits
+  # inside it: resource-group and resource scopes inside a subscription, and
+  # resource scopes inside a resource group. A management-group assignment scope
+  # has no comparable lineage and still requires an exact match. The trailing
+  # separators stop one name from matching as the prefix of another. A request
+  # whose scope is absent or unreadable is not contained.
+  scope_contained = {
+    for id, operation in local.scoped_operations :
+    id => try(
+      operation.assignment != null && operation.assignment.scope_type != "" && operation.assignment.scope_id != "" && (
+        (operation.assignment.scope_type == operation.scope_type && operation.assignment.scope_id == operation.scope_id) ||
+        (operation.assignment.scope_type == "subscription" && contains(["resource_group", "resource"], operation.scope_type) && startswith(operation.scope_id, "${operation.assignment.scope_id}/resourceGroups/")) ||
+        (operation.assignment.scope_type == "resource_group" && operation.scope_type == "resource" && startswith(operation.scope_id, "${operation.assignment.scope_id}/providers/"))
+      ),
+      false
+    )
   }
 
   # Every contract rule per request, keyed by the blocked-reason name it
@@ -131,15 +180,7 @@ locals {
       # Member requests must name the same member as policy_definition_reference_id.
       policy_definition_reference_required    = request.member_reference_id == null || request.policy_definition_reference_id != null
       policy_definition_reference_id_mismatch = request.member_reference_id == null ? request.policy_definition_reference_id == null : request.policy_definition_reference_id == request.member_reference_id && (local.request_decisions[key].member_inventory_known && local.request_context[key].member != null)
-      # A resource or resource-group request matches the resolved scope exactly
-      # or is contained within it; a management-group assignment scope has no
-      # comparable lineage and still requires an exact match.
-      operation_scope_mismatch = local.request_decisions[key].known && (
-        (local.request_context[key].assignment.scope_type == request.scope_type && local.request_context[key].assignment.scope_id == request.scope_id) ||
-        (request.scope_type == "resource_group" && local.request_context[key].assignment.scope_type == "subscription" && local.request_context[key].assignment.scope_id == local.request_scope_subscription_ids[key]) ||
-        (request.scope_type == "resource" && local.request_context[key].assignment.scope_type == "subscription" && local.request_context[key].assignment.scope_id == local.request_scope_subscription_ids[key]) ||
-        (request.scope_type == "resource" && local.request_context[key].assignment.scope_type == "resource_group" && local.request_context[key].assignment.scope_id == local.request_scope_resource_group_ids[key])
-      )
+      operation_scope_mismatch                = local.scope_contained["remediation/${key}"]
       # Execution evidence must include the resolved target definition ID; a
       # blank value means the producer could not resolve the definition or set.
       resolved_policy_definition_id_blank = local.request_decisions[key].known && local.request_decisions[key].policy_definition_id != ""
@@ -211,8 +252,7 @@ locals {
   # families come from caller intent and are known before apply; resolved IDs
   # and eligibility may stay unknown until then, and the contract guard
   # rejects known-invalid execute requests.
-  scope_types = ["management_group", "subscription", "resource_group", "resource"]
-  by_scope = {
+  remediation_by_scope = {
     for scope_type in local.scope_types : scope_type => {
       for key, request in local.request_views : key => request
       if request.mode == "execute" && request.scope_type == scope_type

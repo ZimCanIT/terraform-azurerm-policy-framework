@@ -1,6 +1,7 @@
 # Validation guard only: no input, so it never plans a change when the request
-# set changes.
-resource "terraform_data" "contract_guard" {
+# set changes. The resolved assignment inventory itself is validated at the
+# resolved_assignments variable, so only request-level rules are checked here.
+resource "terraform_data" "exemption_contract_guard" {
   lifecycle {
     precondition {
       condition     = length(local.invalid_request_mode_keys) == 0
@@ -53,11 +54,6 @@ resource "terraform_data" "contract_guard" {
     }
 
     precondition {
-      condition     = length(local.invalid_assignment_member_inventory_keys) == 0
-      error_message = "Resolved assignment members and member_reference_ids must describe the same ordered complete member inventory."
-    }
-
-    precondition {
       condition     = length(local.invalid_member_reference_keys) == 0
       error_message = "Exemption member references must belong to the referenced assignment."
     }
@@ -71,13 +67,12 @@ resource "terraform_data" "contract_guard" {
       condition     = length(local.invalid_selector_keys) == 0 && length(local.invalid_target_selectors_keys) == 0
       error_message = "selectors are unsupported for Azure Policy exemptions; use policy_definition_reference_ids for member targeting."
     }
-
   }
 }
 
 resource "azurerm_management_group_policy_exemption" "this" {
-  for_each   = local.by_scope["management_group"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.exemption_by_scope["management_group"]
+  depends_on = [terraform_data.exemption_contract_guard]
 
   name                            = each.key
   management_group_id             = each.value.scope_id
@@ -91,8 +86,8 @@ resource "azurerm_management_group_policy_exemption" "this" {
 }
 
 resource "azurerm_subscription_policy_exemption" "this" {
-  for_each   = local.by_scope["subscription"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.exemption_by_scope["subscription"]
+  depends_on = [terraform_data.exemption_contract_guard]
 
   name                            = each.key
   subscription_id                 = each.value.scope_id
@@ -106,8 +101,8 @@ resource "azurerm_subscription_policy_exemption" "this" {
 }
 
 resource "azurerm_resource_group_policy_exemption" "this" {
-  for_each   = local.by_scope["resource_group"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.exemption_by_scope["resource_group"]
+  depends_on = [terraform_data.exemption_contract_guard]
 
   name                            = each.key
   resource_group_id               = each.value.scope_id
@@ -121,8 +116,8 @@ resource "azurerm_resource_group_policy_exemption" "this" {
 }
 
 resource "azurerm_resource_policy_exemption" "this" {
-  for_each   = local.by_scope["resource"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.exemption_by_scope["resource"]
+  depends_on = [terraform_data.exemption_contract_guard]
 
   name                            = each.key
   resource_id                     = each.value.scope_id

@@ -1,6 +1,6 @@
 # Behaviour-resolution module
 
-`behaviour-resolution` is the authoritative effective-behaviour boundary. It consumes canonical definition and initiative resource outputs plus assignment intent, resolves decisions itself and emits deterministic records for assignments, identity/RBAC, remediations and exemptions. It does not read source files or create Azure resources.
+`behaviour-resolution` is the authoritative effective-behaviour boundary. It consumes canonical definition and initiative resource outputs plus assignment intent, resolves decisions itself and emits deterministic records for assignments, identity/RBAC and operations (remediations and exemptions). It does not read source files or create Azure resources.
 
 ## Contract
 

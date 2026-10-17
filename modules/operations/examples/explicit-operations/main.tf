@@ -13,9 +13,11 @@ provider "azurerm" {
   features {}
 }
 
-module "remediations" {
+module "operations" {
   source = "../.."
 
+  # One resolved assignment record feeds both the remediation and the exemption
+  # request below.
   resolved_assignments = {
     assignment = {
       assignment = {
@@ -65,13 +67,37 @@ module "remediations" {
       }]
     }
   }
+
+  exemptions = {
+    example = {
+      request_mode  = "create"
+      assignment_id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/example"
+      scope = {
+        type = "subscription"
+        id   = "/subscriptions/00000000-0000-0000-0000-000000000000"
+      }
+      owner                = "platform-governance"
+      reason               = "Time-bound migration exception"
+      ticket_reference     = "CHG-1234"
+      category             = "Waiver"
+      compensating_control = "Weekly review"
+      expires_on           = "2027-01-31T00:00:00Z"
+    }
+  }
+
+  # Fixed so the expiry classification does not change between plans.
+  evaluation_time = "2026-10-17T00:00:00Z"
 }
 
 output "operations" {
   value = {
-    requested  = module.remediations.requested_operations
-    discovered = module.remediations.discovered_operations
-    blocked    = module.remediations.blocked_operations
-    created    = module.remediations.created_operations
+    requested  = module.operations.requested_operations
+    discovered = module.operations.discovered_operations
+    blocked    = module.operations.blocked_operations
+    created    = module.operations.created_operations
   }
+}
+
+output "exemptions" {
+  value = module.operations.status_contract
 }

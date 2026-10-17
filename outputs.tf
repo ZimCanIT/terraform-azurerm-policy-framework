@@ -40,9 +40,9 @@ output "lifecycle_resource_ids" {
       }
     }
     remediations = {
-      for key, record in module.remediations.created_operations : key => record.id
+      for key, record in module.operations.created_operations : key => record.id
     }
-    exemptions = module.exemptions.created_exemption_ids
+    exemptions = module.operations.created_exemption_ids
   }
 }
 
@@ -56,12 +56,12 @@ output "governance" {
 
 output "remediations" {
   description = "Requested remediation operations keyed by operation key, with mode, status, eligibility and blocked reasons."
-  value       = module.remediations.requested_operations
+  value       = module.operations.requested_operations
 }
 
 output "exemptions" {
   description = "Exemption lifecycle views: requested, approved, active, expired, blocked and rejected, keyed by request key."
-  value       = module.exemptions.status_contract
+  value       = module.operations.status_contract
 }
 
 output "plan_summary" {

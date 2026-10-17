@@ -302,8 +302,8 @@ module "assignments" {
   }
 }
 
-module "remediations" {
-  source = "../../../modules/remediations"
+module "operations" {
+  source = "../../../modules/operations"
 
   resolved_assignments = local.resolved_assignment_inventory
   requests = {
@@ -324,12 +324,6 @@ module "remediations" {
       expected_evidence_status = null
     }
   }
-}
-
-module "exemptions" {
-  source = "../../../modules/exemptions"
-
-  assignments = local.resolved_assignment_inventory
   exemptions = {
     test_exemption = {
       request_mode  = "create"
@@ -378,9 +372,9 @@ output "assignments" {
 }
 
 output "remediations" {
-  value = module.remediations.requested_operations
+  value = module.operations.requested_operations
 }
 
 output "exemptions" {
-  value = module.exemptions.status_contract
+  value = module.operations.status_contract
 }

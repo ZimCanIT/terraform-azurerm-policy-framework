@@ -1,6 +1,6 @@
 locals {
   # Shared scope grammar: subscription IDs are GUIDs, as Azure issues them, so
-  # the resolver, identity-rbac, remediations and exemptions agree on one form.
+  # the resolver, identity-rbac and operations agree on one form.
   scope_patterns = {
     management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
     subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"

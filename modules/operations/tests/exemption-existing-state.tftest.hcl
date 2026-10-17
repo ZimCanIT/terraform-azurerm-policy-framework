@@ -2,7 +2,7 @@ mock_provider "azurerm" {}
 
 variables {
   evaluation_time = "2026-09-15T00:00:00Z"
-  assignments = {
+  resolved_assignments = {
     subscription = {
       assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
       intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }

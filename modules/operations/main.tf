@@ -2,7 +2,7 @@
 # This guard blocks derived eligibility and context failures before a
 # previously managed request can leave the resource set and be planned for
 # destruction. It carries no input so it never plans a change on its own.
-resource "terraform_data" "contract_guard" {
+resource "terraform_data" "remediation_contract_guard" {
   lifecycle {
     precondition {
       condition     = length(local.blocked_request_keys) == 0
@@ -15,8 +15,8 @@ resource "terraform_data" "contract_guard" {
 # intent or removal from requests remains a desired-state change that callers
 # review and clean up deliberately.
 resource "azurerm_management_group_policy_remediation" "this" {
-  for_each   = local.by_scope["management_group"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.remediation_by_scope["management_group"]
+  depends_on = [terraform_data.remediation_contract_guard]
 
   name                           = each.key
   management_group_id            = each.value.scope_id
@@ -29,8 +29,8 @@ resource "azurerm_management_group_policy_remediation" "this" {
 }
 
 resource "azurerm_subscription_policy_remediation" "this" {
-  for_each   = local.by_scope["subscription"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.remediation_by_scope["subscription"]
+  depends_on = [terraform_data.remediation_contract_guard]
 
   name                           = each.key
   subscription_id                = each.value.scope_id
@@ -44,8 +44,8 @@ resource "azurerm_subscription_policy_remediation" "this" {
 }
 
 resource "azurerm_resource_group_policy_remediation" "this" {
-  for_each   = local.by_scope["resource_group"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.remediation_by_scope["resource_group"]
+  depends_on = [terraform_data.remediation_contract_guard]
 
   name                           = each.key
   resource_group_id              = each.value.scope_id
@@ -59,8 +59,8 @@ resource "azurerm_resource_group_policy_remediation" "this" {
 }
 
 resource "azurerm_resource_policy_remediation" "this" {
-  for_each   = local.by_scope["resource"]
-  depends_on = [terraform_data.contract_guard]
+  for_each   = local.remediation_by_scope["resource"]
+  depends_on = [terraform_data.remediation_contract_guard]
 
   name                           = each.key
   resource_id                    = each.value.scope_id

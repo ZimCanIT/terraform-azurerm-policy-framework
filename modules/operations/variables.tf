@@ -1,5 +1,5 @@
 variable "resolved_assignments" {
-  description = "Canonical resolved assignment records keyed by stable assignment key."
+  description = "Canonical resolved assignment records keyed by stable assignment key, read by both remediation and exemption requests."
   type        = any
   default     = {}
 
@@ -73,7 +73,7 @@ variable "discovery_evidence" {
         can(keys(target)) &&
         can(regex("^\"[^\"]*\"$", jsonencode(target.resource_id))) &&
         jsonencode(target.resource_id) == format("\"%s\"", target.resource_id) &&
-        can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/.+$", trimspace(target.resource_id))) &&
+        can(regex(local.scope_patterns.resource, trimspace(target.resource_id))) &&
         can(regex("^\"[^\"]*\"$", jsonencode(target.location))) &&
         jsonencode(target.location) == format("\"%s\"", target.location) &&
         can(regex("^\\S(.*\\S)?$", target.location))
@@ -129,7 +129,7 @@ variable "requests" {
       for _, request in var.requests :
       can(regex("^\"[^\"]*\"$", jsonencode(request.scope_type))) &&
       jsonencode(request.scope_type) == format("\"%s\"", request.scope_type) &&
-      contains(["management_group", "subscription", "resource_group", "resource"], lower(trimspace(request.scope_type)))
+      contains(local.scope_types, lower(trimspace(request.scope_type)))
     ]), false)
     error_message = "Each remediation request scope_type must be a supported Azure scope type."
   }
@@ -147,7 +147,7 @@ variable "requests" {
   validation {
     condition = try(alltrue([
       for _, request in var.requests :
-      can(regex("^(/providers/Microsoft.Management/managementGroups/[^/]+|/subscriptions/[0-9a-fA-F-]{36}(/resourceGroups/[^/]+)?|/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/.+)/providers/Microsoft.Authorization/policyAssignments/[^/]+$", trimspace(request.policy_assignment_id)))
+      can(regex(local.policy_assignment_id_pattern, trimspace(request.policy_assignment_id)))
     ]), false)
     error_message = "Each policy_assignment_id must be a valid management-group, subscription, resource-group or resource policy assignment ID."
   }
@@ -256,5 +256,47 @@ variable "requests" {
       )
     ]), false)
     error_message = "failure_percentage must be null or a numeric value between 0 and 1."
+  }
+}
+
+variable "exemptions" {
+  description = "Governed exemption requests keyed by stable request key."
+  type        = any
+  default     = {}
+
+  validation {
+    condition     = can(keys(var.exemptions)) && !can(tolist(var.exemptions))
+    error_message = "exemptions must be a keyed object or map of exemption request objects."
+  }
+
+  validation {
+    condition = try(alltrue([
+      for key, exemption in var.exemptions :
+      trimspace(key) != "" && can(keys(exemption))
+    ]), false)
+    error_message = "Each exemption request must use a non-blank key and an object value."
+  }
+
+  validation {
+    condition = try(alltrue([
+      for _, exemption in var.exemptions :
+      length(setsubtract(toset(keys(exemption)), toset([
+        "request_mode", "assignment_id", "scope", "owner", "reason", "approval_reference",
+        "ticket_reference", "category", "compensating_control", "expires_on",
+        "policy_definition_reference_ids", "selectors", "display_name", "description"
+      ]))) == 0
+    ]), false)
+    error_message = "Exemption requests may contain only fields from the governed exemption contract."
+  }
+}
+
+variable "evaluation_time" {
+  description = "Optional RFC3339 instant used to classify exemption expiry. When omitted, Terraform evaluation time is used."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.evaluation_time == null || can(formatdate("YYYY-MM-DD'T'hh:mm:ss'Z'", var.evaluation_time))
+    error_message = "evaluation_time must be null or a valid RFC3339 timestamp."
   }
 }
