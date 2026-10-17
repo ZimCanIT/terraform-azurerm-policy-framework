@@ -295,11 +295,8 @@ module "identity_rbac" {
 module "assignments" {
   source = "../../../modules/assignments"
 
-  assignments = local.resolved_assignment_inventory
-  identity_bindings = {
-    for key, record in module.identity_rbac.identity_rbac : key => record.assignment_binding
-    if record.assignment_binding != null
-  }
+  assignments       = local.resolved_assignment_inventory
+  identity_bindings = module.identity_rbac.assignment_bindings
 }
 
 module "operations" {
@@ -312,7 +309,6 @@ module "operations" {
       assignment_key           = "remediation_assignment"
       scope_type               = "subscription"
       scope_id                 = "/subscriptions/00000000-0000-0000-0000-000000000000"
-      policy_assignment_id     = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/remediation_assignment"
       resource_discovery_mode  = "ExistingNonCompliant"
       location_filters         = null
       resource_count           = 10

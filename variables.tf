@@ -35,7 +35,7 @@ variable "assignments" {
 }
 
 variable "remediation_requests" {
-  description = "Explicit remediation requests keyed by stable operation key. A request naming an assignment_key created here receives that assignment's Azure ID at apply."
+  description = "Explicit remediation requests keyed by stable operation key. policy_assignment_id may be omitted: the operations module then takes the Azure ID of the assignment named by assignment_key, which is unknown until apply for an assignment created here. A supplied policy_assignment_id must equal that ID."
   type        = any
   default     = {}
 }

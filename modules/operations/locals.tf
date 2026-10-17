@@ -38,6 +38,8 @@ locals {
     }
   }
 
+  # policy_assignment_id here is the caller's value, or null when omitted.
+  # request_views takes an omitted value from the resolved assignment.
   request_entries = {
     for key, request in var.requests :
     key => {
@@ -46,7 +48,7 @@ locals {
       member_reference_id            = try(trimspace(request.member_reference_id), "") != "" ? trimspace(request.member_reference_id) : null
       scope_type                     = lower(trimspace(request.scope_type))
       scope_id                       = trimspace(request.scope_id)
-      policy_assignment_id           = trimspace(request.policy_assignment_id)
+      policy_assignment_id           = try(trimspace(request.policy_assignment_id), "") != "" ? trimspace(request.policy_assignment_id) : null
       policy_definition_reference_id = try(trimspace(request.policy_definition_reference_id), "") != "" ? trimspace(request.policy_definition_reference_id) : null
       resource_discovery_mode        = try(trimspace(request.resource_discovery_mode), "") != "" ? trimspace(request.resource_discovery_mode) : null
       location_filters               = try(request.location_filters == null ? null : [for location in tolist(request.location_filters) : trimspace(location)], null)
@@ -168,11 +170,11 @@ locals {
   request_checks = {
     for key, request in local.request_entries : key => {
       scope_id_malformed             = contains(keys(local.scope_patterns), request.scope_type) && can(regex(local.scope_patterns[request.scope_type], request.scope_id))
-      policy_assignment_id_malformed = can(regex(local.policy_assignment_id_pattern, request.policy_assignment_id))
+      policy_assignment_id_malformed = request.policy_assignment_id == null || can(regex(local.policy_assignment_id_pattern, request.policy_assignment_id))
       role_scope_malformed           = request.role_scope == null || can(regex(local.role_scope_pattern, request.role_scope))
       assignment_context_unknown     = local.request_decisions[key].known
       assignment_id_unknown          = local.request_decisions[key].known && local.request_context[key].assignment.assignment_id != ""
-      assignment_id_mismatch         = local.request_decisions[key].known && local.request_context[key].assignment.assignment_id == request.policy_assignment_id
+      assignment_id_mismatch         = local.request_decisions[key].known && (request.policy_assignment_id == null || local.request_context[key].assignment.assignment_id == request.policy_assignment_id)
       resolved_scope_unknown         = local.request_decisions[key].known && local.request_context[key].assignment.scope_type != "" && local.request_context[key].assignment.scope_id != ""
       member_inventory_unknown       = local.request_decisions[key].member_inventory_known
       member_reference_required      = !local.request_decisions[key].member_inventory_known ? true : length(local.request_context[key].assignment.member_reference_ids) == 0 || request.member_reference_id != null
@@ -245,6 +247,12 @@ locals {
       required_roles              = local.request_decisions[key].required_roles
       member_reference_ids        = try(local.request_context[key].assignment.member_reference_ids, null)
       member_policy_definition_id = try(local.request_context[key].member.policy_definition_id, null)
+      # An omitted policy_assignment_id takes the ID of the assignment the request
+      # names. While that assignment has no ID the value stays null, and the
+      # assignment_id_unknown rule blocks an execute or discovery request.
+      policy_assignment_id = request.policy_assignment_id != null ? request.policy_assignment_id : (
+        try(local.request_context[key].assignment.assignment_id, "") != "" ? local.request_context[key].assignment.assignment_id : null
+      )
     })
   }
 

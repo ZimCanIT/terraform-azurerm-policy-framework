@@ -150,18 +150,25 @@ variable "requests" {
     condition = try(alltrue([
       for _, request in var.requests :
       can(regex("^\"[^\"]*\"$", jsonencode(request.assignment_key))) && jsonencode(request.assignment_key) == format("\"%s\"", request.assignment_key) && can(regex("^\\S(.*\\S)?$", request.assignment_key)) &&
-      can(regex("^\"[^\"]*\"$", jsonencode(request.scope_id))) && jsonencode(request.scope_id) == format("\"%s\"", request.scope_id) && can(regex("^\\S(.*\\S)?$", request.scope_id)) &&
-      can(regex("^\"[^\"]*\"$", jsonencode(request.policy_assignment_id))) && jsonencode(request.policy_assignment_id) == format("\"%s\"", request.policy_assignment_id) && can(regex("^\\S(.*\\S)?$", request.policy_assignment_id))
+      can(regex("^\"[^\"]*\"$", jsonencode(request.scope_id))) && jsonencode(request.scope_id) == format("\"%s\"", request.scope_id) && can(regex("^\\S(.*\\S)?$", request.scope_id))
     ]), false)
-    error_message = "Each remediation request requires strict, non-blank assignment_key, scope_id and policy_assignment_id strings."
+    error_message = "Each remediation request requires strict, non-blank assignment_key and scope_id strings."
   }
 
   validation {
     condition = try(alltrue([
       for _, request in var.requests :
-      can(regex(local.policy_assignment_id_pattern, trimspace(request.policy_assignment_id)))
+      try(request.policy_assignment_id == null, true) || (can(regex("^\"[^\"]*\"$", jsonencode(request.policy_assignment_id))) && jsonencode(request.policy_assignment_id) == format("\"%s\"", request.policy_assignment_id) && can(regex("^\\S(.*\\S)?$", request.policy_assignment_id)))
     ]), false)
-    error_message = "Each policy_assignment_id must be a valid management-group, subscription, resource-group or resource policy assignment ID."
+    error_message = "policy_assignment_id must be null or a strict, non-blank string when supplied."
+  }
+
+  validation {
+    condition = try(alltrue([
+      for _, request in var.requests :
+      try(request.policy_assignment_id == null, true) || can(regex(local.policy_assignment_id_pattern, trimspace(request.policy_assignment_id)))
+    ]), false)
+    error_message = "A supplied policy_assignment_id must be a valid management-group, subscription, resource-group or resource policy assignment ID."
   }
 
   validation {

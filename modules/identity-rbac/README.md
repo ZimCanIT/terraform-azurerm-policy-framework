@@ -13,7 +13,7 @@ Supported identity strategies are:
 - `none`, with `required = false` and a verified empty role list
 - `user_assigned`, with `required = true`, deterministic `name_basis`, `location`, `resource_group_name` and at least one required role
 
-System-assigned identities and unknown identity decisions are rejected. A required identity is returned as an `assignment_binding`; the assignments module consumes that binding to attach the user-assigned identity to the policy assignment. The relationship is acyclic: the resolver feeds both modules, and the assignment resource consumes the identity output.
+System-assigned identities and unknown identity decisions are rejected. A required identity is returned as an `assignment_binding`; the assignments module consumes that binding to attach the user-assigned identity to the policy assignment. The `assignment_bindings` output carries exactly those bindings, keyed by assignment key, so the caller passes it to the assignments module as `identity_bindings` without reshaping. The relationship is acyclic: the resolver feeds both modules, and the assignment resource consumes the identity output.
 
 Each resolved role must provide:
 
@@ -46,6 +46,8 @@ Guards are named so failures are attributable. The `assignments` variable valida
 - effective decision, governance and replacement intent
 - the resolver's complete per-member decisions, unchanged (null remains unknown)
 - `replacement_impact`, identifying identity replacement fields and grant-address changes
+
+`assignment_bindings` holds only the non-null `assignment_binding` records, so an assignment that verifiably needs no identity has no entry. Each binding contains `assignment_key`, `id`, `identity_id`, `principal_id` and `identity_strategy`, which is the shape the assignments module validates for `identity_bindings`. When the identity is not yet created, the identity and principal fields are unknown until apply.
 
 Identity names and role-assignment addresses are stable for assignment key, strategy, role and grant scope. Purpose is descriptive output and does not form the role resource key. Changing identity name basis, strategy, location or resource group is a replacement/migration event; changing role definition or grant scope changes the grant address and requires review of the old grant. The assignments module receives only `assignment_binding` records from this module, so identity attachment is acyclic and cannot use a broad caller fallback.
 

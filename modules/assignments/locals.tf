@@ -452,6 +452,17 @@ locals {
     }
   }
 
+  # The records this module received, handed back with the lifecycle binding of
+  # the assignment it owns. Records are otherwise unchanged. The binding ID is
+  # null when no assignment resource exists for the record and unknown while one
+  # is planned, and a consumer must not read either as a match. Downstream
+  # modules read this instead of rebuilding it.
+  resolved_assignments = {
+    for key, record in var.assignments : key => merge(record, {
+      assignment = merge(try(record.assignment, {}), local.assignment_outputs[key].assignment)
+    })
+  }
+
   assignment_resource_ids = merge([
     for resources in [
       azurerm_management_group_policy_assignment.this,

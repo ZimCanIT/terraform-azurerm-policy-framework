@@ -40,12 +40,15 @@ The nested `intent` and `resolved` containers are exact contracts. Legacy flatte
 ### Output
 
 - `assignments`: canonical review output keyed by assignment key
+- `resolved_assignments`: the received records with the assignment lifecycle binding merged in
 - `assignment_names`: deterministic Azure Policy assignment names
 - `management_group_policy_assignment_ids`
 - `subscription_policy_assignment_ids`
 - `resource_group_policy_assignment_ids`
 - `resource_policy_assignment_ids`
 - `replacement_review`: name, scope, target and identity changes that require replacement review
+
+`resolved_assignments` returns each received record unchanged except for its `assignment` binding, which holds the Azure ID and the deterministic name of the assignment this module created. It is the `resolved_assignments` input of the operations module, so no caller rebuilds the binding. While an assignment is planned for creation its ID is unknown until apply, and a null ID means no assignment resource exists for the record. A consumer treats both as not yet bound and never as a match.
 
 ## Example
 

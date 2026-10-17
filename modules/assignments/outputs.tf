@@ -3,6 +3,11 @@ output "assignments" {
   value       = local.assignment_outputs
 }
 
+output "resolved_assignments" {
+  description = "The resolved-assignment records this module received, keyed by stable assignment key, with the assignment lifecycle binding (Azure ID and name) merged in. This is the resolved_assignments input of the operations module."
+  value       = local.resolved_assignments
+}
+
 output "assignment_names" {
   description = "Deterministic Azure Policy assignment names keyed by stable assignment key."
   value       = local.assignment_names

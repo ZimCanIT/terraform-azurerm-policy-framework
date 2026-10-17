@@ -64,6 +64,50 @@ run "root_composition_preserves_intent_and_resolved_handoffs" {
     condition     = contains(keys(output.root_contract.lifecycle_resource_ids.assignments), "direct_audit") && contains(keys(output.root_contract.lifecycle_resource_ids.identities), "direct_audit")
     error_message = "The root lifecycle projection must expose stable assignment and identity keys for live cleanup and review."
   }
+
+  assert {
+    condition = (
+      output.root_contract.resolved_assignments["direct_audit"].assignment.id == "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/mock" &&
+      output.root_contract.resolved_assignments["typed_direct"].assignment.id == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/contract/providers/Microsoft.Storage/storageAccounts/typed/providers/Microsoft.Authorization/policyAssignments/typed-direct" &&
+      output.root_contract.resolved_assignments["typed_set"].assignment.id == "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/contract/providers/Microsoft.Authorization/policyAssignments/typed-set"
+    )
+    error_message = "The root resolved_assignments output must carry the Azure ID of the assignment resource created for each scope family."
+  }
+
+  assert {
+    condition = alltrue([
+      for key, record in output.root_contract.resolved_assignments :
+      record.assignment.name == output.root_contract.replacement_review.assignments[key].name_basis &&
+      output.root_contract.lifecycle_resource_ids.assignments[key] == record.assignment.id
+    ])
+    error_message = "Each binding name must be the deterministic assignment name, and the lifecycle ID projection must read the same binding."
+  }
+}
+
+run "remediation_request_takes_the_created_assignment_id" {
+  command = plan
+
+  variables {
+    test_case = "remediation"
+  }
+
+  assert {
+    condition = (
+      output.root_contract.remediations["derived"].policy_assignment_id == output.root_contract.resolved_assignments["direct_audit"].assignment.id &&
+      output.root_contract.remediations["derived"].status == "skipped" &&
+      !contains(output.root_contract.remediations["derived"].blocked_reasons, "assignment_id_unknown") &&
+      !contains(output.root_contract.remediations["derived"].blocked_reasons, "assignment_id_mismatch")
+    )
+    error_message = "A remediation request that omits policy_assignment_id must receive the Azure ID of the assignment named by assignment_key, through the assignments module binding."
+  }
+
+  assert {
+    condition = (
+      output.root_contract.remediations["mismatched"].policy_assignment_id == "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/other" &&
+      contains(output.root_contract.remediations["mismatched"].blocked_reasons, "assignment_id_mismatch")
+    )
+    error_message = "A supplied policy_assignment_id that differs from the created assignment must be reported as a mismatch and never replaced silently."
+  }
 }
 
 run "preserves_seven_typed_parameters_through_root_composition" {

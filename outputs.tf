@@ -19,14 +19,14 @@ output "initiatives" {
 
 output "resolved_assignments" {
   description = "Shared resolved-assignment contract keyed by stable assignment key, including created assignment IDs and names."
-  value       = local.assignment_lifecycle
+  value       = module.assignments.resolved_assignments
 }
 
 output "lifecycle_resource_ids" {
   description = "Azure resource IDs reported by the assignment, identity/RBAC, remediation and exemption resources."
   value = {
     assignments = {
-      for key, record in local.assignment_lifecycle : key => try(record.assignment.id, null)
+      for key, record in module.assignments.resolved_assignments : key => try(record.assignment.id, null)
     }
     identities = {
       for key, record in module.identity_rbac.identity_rbac : key => try(record.identity_id, null)

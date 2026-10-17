@@ -16,7 +16,7 @@ Remediations and exemptions share a module because they share an owner, an appro
 
 ### Resolved assignments
 
-Each record provides `assignment.id`, `intent.scope.type` and `intent.scope.id`. Remediation requests also read `resolved.policy_definition_id`, `resolved.remediation_eligibility`, `resolved.remediation_reason`, `resolved.required_roles` and, for initiative targets, per-member decisions. Both families read `resolved.members` and `resolved.member_reference_ids`, which describe the complete initiative membership in the same order. `[]` means verified absence and null means unknown. The module rejects a record whose two member collections disagree, whichever family reads it, and rejects two records that share one assignment ID, because exemptions find their assignment by ID. A blank `remediation_eligibility` is an unknown decision, never a declared state.
+Each record provides `assignment.id`, `intent.scope.type` and `intent.scope.id`. The `resolved_assignments` output of the assignments module is this input: it returns the resolver records with the lifecycle binding (`assignment.id` and `assignment.name`) merged in, so the two modules connect without reshaping. A null or blank `assignment.id` means no assignment exists yet and is never treated as a match. Remediation requests also read `resolved.policy_definition_id`, `resolved.remediation_eligibility`, `resolved.remediation_reason`, `resolved.required_roles` and, for initiative targets, per-member decisions. Both families read `resolved.members` and `resolved.member_reference_ids`, which describe the complete initiative membership in the same order. `[]` means verified absence and null means unknown. The module rejects a record whose two member collections disagree, whichever family reads it, and rejects two records that share one assignment ID, because exemptions find their assignment by ID. A blank `remediation_eligibility` is an unknown decision, never a declared state.
 
 ```hcl
 resolved_assignments = {
@@ -32,7 +32,9 @@ Supported scope types are `management_group`, `subscription`, `resource_group` a
 
 ## Remediations
 
-`requests` holds keyed operation requests. Each request requires `mode`, `assignment_key`, `scope_type`, `scope_id` and `policy_assignment_id`. A request may also provide `member_reference_id`, `policy_definition_reference_id`, `resource_discovery_mode`, `location_filters`, `resource_count`, `parallel_deployments`, `failure_percentage`, `role_scope`, `approval_reference`, `evidence_status` and `expected_evidence_status`.
+`requests` holds keyed operation requests. Each request requires `mode`, `assignment_key`, `scope_type` and `scope_id`. A request may also provide `policy_assignment_id`, `member_reference_id`, `policy_definition_reference_id`, `resource_discovery_mode`, `location_filters`, `resource_count`, `parallel_deployments`, `failure_percentage`, `role_scope`, `approval_reference`, `evidence_status` and `expected_evidence_status`.
+
+`policy_assignment_id` is optional. When it is omitted or null, the module takes the ID from `assignment.id` of the resolved assignment that `assignment_key` names, so a caller never copies an assignment ID by hand. A supplied value must be a valid policy assignment ID and must equal that `assignment.id`. A different value is blocked as `assignment_id_mismatch` and is never replaced. While the resolved assignment has no ID, the request stays unbound and is blocked as `assignment_id_unknown`. A blank string is rejected, so null and empty stay distinct.
 
 If the resolved assignment targets an initiative, each request must select one member and use the same ID for `policy_definition_reference_id`; both must match the complete resolved member inventory. Eligibility, definition ID and role scope are checked against that member's decision record, so another member's eligibility or role cannot authorise the request. Direct policy targets use an empty member list and omit both member fields. Unknown membership blocks the operation.
 
@@ -42,7 +44,7 @@ If the resolved assignment targets an initiative, each request must select one m
 
 `execute` creates a resource only when the request has all of the following:
 
-- verified assignment context and a `policy_assignment_id` that equals the resolved assignment ID;
+- verified assignment context and an assignment ID, either derived from the resolved assignment or supplied and equal to it;
 - a non-blank resolved `policy_definition_id`;
 - a scope that matches the resolved assignment scope or sits inside it;
 - matching member and policy-definition references when the target is an initiative;
@@ -132,14 +134,13 @@ module "operations" {
 
   requests = {
     remediate_example = {
-      mode                 = "execute"
-      assignment_key       = "assignment_example"
-      scope_type           = "subscription"
-      scope_id             = "/subscriptions/00000000-0000-0000-0000-000000000000"
-      policy_assignment_id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/example"
-      role_scope           = "/subscriptions/00000000-0000-0000-0000-000000000000"
-      approval_reference   = "CAB-12345"
-      resource_count       = 50
+      mode               = "execute"
+      assignment_key     = "assignment_example"
+      scope_type         = "subscription"
+      scope_id           = "/subscriptions/00000000-0000-0000-0000-000000000000"
+      role_scope         = "/subscriptions/00000000-0000-0000-0000-000000000000"
+      approval_reference = "CAB-12345"
+      resource_count     = 50
     }
   }
 }

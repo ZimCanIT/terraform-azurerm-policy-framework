@@ -321,12 +321,13 @@ run "reject_absent_required_fields" {
       }
     }
 
+    # policy_assignment_id is optional and derived from the resolved assignment,
+    # so the absent required field here is scope_id.
     requests = {
       execute_missing = {
         mode           = "execute"
         assignment_key = "assignment_ok"
         scope_type     = "subscription"
-        scope_id       = "/subscriptions/11111111-1111-1111-1111-111111111111"
       }
     }
   }

@@ -177,6 +177,23 @@ module "framework" {
   external_control_keys    = ["external-baseline"]
   external_assignment_keys = ["externally-managed-assignment"]
 
+  # Disabled requests reach the operations contract without needing an eligible
+  # target, so they show the assignment ID the module derives or rejects.
+  remediation_requests = var.test_case == "remediation" ? {
+    derived = {
+      mode           = "disabled"
+      assignment_key = "direct_audit"
+      scope_type     = "subscription"
+      scope_id       = "/subscriptions/00000000-0000-0000-0000-000000000000"
+    }
+    mismatched = {
+      mode                 = "disabled"
+      assignment_key       = "direct_audit"
+      scope_type           = "subscription"
+      scope_id             = "/subscriptions/00000000-0000-0000-0000-000000000000"
+      policy_assignment_id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/other"
+    }
+  } : {}
 }
 
 output "root_contract" {

@@ -30,12 +30,9 @@ module "identity_rbac" {
 }
 
 module "assignments" {
-  source      = "./modules/assignments"
-  assignments = module.behaviour_resolution.assignments
-  identity_bindings = {
-    for key, record in module.identity_rbac.identity_rbac : key => record.assignment_binding
-    if record.assignment_binding != null
-  }
+  source            = "./modules/assignments"
+  assignments       = module.behaviour_resolution.assignments
+  identity_bindings = module.identity_rbac.assignment_bindings
 }
 
 module "governance" {
@@ -57,19 +54,9 @@ module "governance" {
 
 module "operations" {
   source               = "./modules/operations"
-  resolved_assignments = local.assignment_lifecycle
-  # A request that names an assignment created by this configuration cannot
-  # know its Azure assignment ID before apply, so the root injects the created
-  # ID from the assignment key. Requests whose assignment_key has no created
-  # assignment keep the caller's policy_assignment_id unchanged and remain
-  # subject to the operations module's own fail-closed validation.
-  requests = {
-    for key, request in var.remediation_requests :
-    key => merge(request, {
-      policy_assignment_id = try(module.assignments.assignments[request.assignment_key].id, request.policy_assignment_id)
-    })
-  }
-  discovery_evidence = var.discovery_evidence
-  exemptions         = var.exemptions
-  evaluation_time    = var.evaluation_time
+  resolved_assignments = module.assignments.resolved_assignments
+  requests             = var.remediation_requests
+  discovery_evidence   = var.discovery_evidence
+  exemptions           = var.exemptions
+  evaluation_time      = var.evaluation_time
 }
