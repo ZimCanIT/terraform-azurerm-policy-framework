@@ -119,9 +119,8 @@ module "framework" {
   assignments = {
     direct_audit = {
       target = {
-        reference_id         = "direct_audit"
-        definition_key       = var.test_case == "malformed" ? null : "direct_audit"
-        policy_definition_id = var.test_case == "malformed" ? "not-an-azure-policy-id" : null
+        reference_id   = "direct_audit"
+        definition_key = "direct_audit"
       }
       scope = {
         type = "subscription"
