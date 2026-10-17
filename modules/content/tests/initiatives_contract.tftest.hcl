@@ -69,7 +69,7 @@ run "preserves_member_version_and_empty_state" {
       output.initiatives["baseline"].policy_definition_references[0].selected_version == "1.0.*" &&
       output.initiatives["baseline"].policy_definition_references[0].source_type == "built_in" &&
       output.initiatives["baseline"].policy_definition_references[0].created_by_module == false &&
-      output.initiatives["baseline"].policy_definition_references[0].role_definition_ids == []
+      length(output.initiatives["baseline"].policy_definition_references[0].role_definition_ids) == 0
     )
     error_message = "Initiative outputs must distinguish set-level parameters from member schemas and preserve member source, ownership and role metadata."
   }
@@ -309,7 +309,7 @@ run "preserves_management_group_resource_and_member_contract" {
       output.initiatives["platform"].policy_definition_references[0].parameter_schema == { location = { type = "String" } } &&
       output.initiatives["platform"].policy_definition_references[0].source_type == "custom" &&
       output.initiatives["platform"].policy_definition_references[0].created_by_module == true &&
-      output.initiatives["platform"].policy_definition_references[0].role_definition_ids == ["/providers/Microsoft.Authorization/roleDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
+      [for id in output.initiatives["platform"].policy_definition_references[0].role_definition_ids : id] == ["/providers/Microsoft.Authorization/roleDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
     )
     error_message = "Management-group initiative output must preserve its resource scope and the distinct member/set contract fields."
   }
