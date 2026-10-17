@@ -1086,6 +1086,24 @@ if ($HarnessFixtureDemo) {
         $script:fixtureStateJson.values.root_module.resources[1].address = 'module.framework.module.assignments.azurerm_subscription_policy_assignment.this["audit-sub"]'
         $script:fixtureStateJson.values.root_module.resources[1].values.id = '/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/audit-sub-subscription-built-in-audit'
         Assert-Fixture (-not (Test-RunWorkspaceState -Status $minimalStateStatus)) 'reviewed Azure resource address with a foreign subscription ID is rejected'
+        # Complete profile: the reviewed content, identity, assignment and operations
+        # addresses and every contract guard are accepted; a retired module address is not.
+        $savedFixtureState = $script:fixtureStateJson
+        $script:fixtureStateJson = $script:fixtureCompleteState
+        $completeStateResources = [System.Collections.Generic.List[object]]::new()
+        Add-StateModuleResources -Module $script:fixtureCompleteState.values.root_module -Resources $completeStateResources
+        $completeStateIds = @($completeStateResources | ForEach-Object { "$($_.values.id)" } | Where-Object { $_ -like '/subscriptions/*' })
+        $completeStateStatus = @{
+            exampleRoot = Join-Path $script:repoRoot 'examples/complete-policy-lifecycle'
+            profile = 'complete'; terraformWorkspace = $workspaceName; subscriptionId = $script:approvedSubscriptionId
+            createdResourceIds = @{ fixture = $completeStateIds }
+        }
+        Assert-Fixture (Test-RunWorkspaceState -Status $completeStateStatus) 'complete state accepts only its reviewed module addresses and contract guards'
+        $retiredGuard = @($completeStateResources | Where-Object { $_.address -like '*exemption_contract_guard' })[0]
+        $retiredGuard.address = 'module.framework.module.exemptions.terraform_data.contract_guard'
+        Assert-Fixture (-not (Test-RunWorkspaceState -Status $completeStateStatus)) 'complete state rejects a guard address from the retired exemptions module'
+        $retiredGuard.address = 'module.framework.module.operations.terraform_data.exemption_contract_guard'
+        $script:fixtureStateJson = $savedFixtureState
         $invalidResourceIds = @(
             @{ Id = '/subscriptions/other/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/x'; Expected = '*out-of-scope*' },
             @{ Id = '/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/foreign/providers/Microsoft.Authorization/policyAssignments/x'; Expected = '*unsupported subscription-scoped delete contract*' },
@@ -1586,7 +1604,7 @@ try {
         Write-RunLog "stage 0 resource group apply failed with exit code $($apply0a.ExitCode)"
         return
     }
-    $apply0b = Invoke-TrackedApply -Status $runStatus -Stage 'stage-0b' -TerraformArguments (@($tfRoot, 'apply', '-auto-approve', '-target=module.framework.module.definitions.azurerm_policy_definition.this', '-target=module.framework.module.initiatives.azurerm_policy_set_definition.subscription') + $baseArgs)
+    $apply0b = Invoke-TrackedApply -Status $runStatus -Stage 'stage-0b' -TerraformArguments (@($tfRoot, 'apply', '-auto-approve', '-target=module.framework.module.content.azurerm_policy_definition.this', '-target=module.framework.module.content.azurerm_policy_set_definition.subscription') + $baseArgs)
     if ($apply0b.ExitCode -ne 0) {
         $script:testFailed = $true
         Write-RunLog "stage 0 policy content apply failed with exit code $($apply0b.ExitCode)"
@@ -1757,7 +1775,7 @@ try {
         return
     }
 
-    $exemptionAddress = 'module.framework.module.exemptions.azurerm_resource_group_policy_exemption.this["exempt-tag-rg-uat"]'
+    $exemptionAddress = 'module.framework.module.operations.azurerm_resource_group_policy_exemption.this["exempt-tag-rg-uat"]'
     $exemptionId = "$(@($runStatus['createdResourceIds']['exemptions'])[0])"
     if (-not $exemptionId -or -not (Assert-ExemptionState -Label 'stage 2 exemption' -ResourceGroupName $targetRgName -AssignmentId $assignmentId -ExemptionId $exemptionId -ExpectedExpiryDate $fileExpiry)) { return }
     if (-not (Assert-Convergence -Label 'stage 2' -Status $runStatus -ExtraVars @())) { return }
@@ -1792,8 +1810,8 @@ try {
     $runStatus['terraformVars']['create_exemption'] = 'false'
     $runStatus['activeStage'] = 'exemption-removal'
     Save-RunStatus -Status $runStatus
-    $exemptionGuardAddress = 'module.framework.module.exemptions.terraform_data.contract_guard'
-    $removeExemptionPlan = Invoke-ReviewedTerraformPlan -Status $runStatus -Stage 'exemption-removal' -ExpectedAddressActions @{ $exemptionAddress = @('delete'); $exemptionGuardAddress = @('update') }
+    # The exemption guard carries no input, so removal plans only the delete.
+    $removeExemptionPlan = Invoke-ReviewedTerraformPlan -Status $runStatus -Stage 'exemption-removal' -ExpectedAddressActions @{ $exemptionAddress = @('delete') }
     if (-not $removeExemptionPlan) { return }
     $removeExemptionApply = Invoke-TrackedApply -Status $runStatus -Stage 'exemption-removal' -TerraformArguments @($tfRoot, 'apply', '-auto-approve', $removeExemptionPlan.Path)
     if ($removeExemptionApply.ExitCode -ne 0) {
@@ -1817,7 +1835,7 @@ try {
         Write-RunLog 'repeat remediation skipped: current task creation time could not be captured for distinct execution proof'
         return
     }
-    $remediationAddress = 'module.framework.module.remediations.azurerm_resource_group_policy_remediation.this["remediate-tag-rg"]'
+    $remediationAddress = 'module.framework.module.operations.azurerm_resource_group_policy_remediation.this["remediate-tag-rg"]'
     $runStatus['activeStage'] = 'remediation-repeat'
     Save-RunStatus -Status $runStatus
     $repeatRemediationPlan = Invoke-ReviewedTerraformPlan -Status $runStatus -Stage 'remediation-repeat' -ExpectedAddressActions @{ $remediationAddress = @('delete', 'create') } -AdditionalPlanArguments @(('-replace=' + $remediationAddress))
