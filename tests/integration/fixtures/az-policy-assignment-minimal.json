@@ -1,0 +1,11 @@
+{
+  "name": "audit-sub-subscription-built-in-audit",
+  "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policyAssignments/audit-sub-subscription-built-in-audit",
+  "metadata": {
+    "owner": "platform-governance"
+  },
+  "scope": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/06a78e20-9358-41c9-923c-fb736d382a4d",
+  "enforcementMode": "Default",
+  "parameters": null
+}

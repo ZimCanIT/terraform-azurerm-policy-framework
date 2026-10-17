@@ -1,0 +1,27 @@
+{
+  "groups": [
+    { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-existing-platform" },
+    { "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-existing-shared" }
+  ],
+  "assignments": [
+    {
+      "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policyAssignments/existing-platform-audit",
+      "name": "existing-platform-audit",
+      "scope": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    }
+  ],
+  "definitions": [
+    {
+      "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policyDefinitions/existing-platform-policy",
+      "name": "existing-platform-policy",
+      "policyType": "Custom"
+    }
+  ],
+  "initiatives": [
+    {
+      "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policySetDefinitions/existing-platform-initiative",
+      "name": "existing-platform-initiative",
+      "policyType": "Custom"
+    }
+  ]
+}

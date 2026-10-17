@@ -1,0 +1,34 @@
+{
+  "resolved_assignment_review": {
+    "sensitive": false,
+    "type": ["object", {}],
+    "value": {
+      "audit-sub": {
+        "scope_type": "subscription",
+        "scope_id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "policy_definition_id": "/providers/Microsoft.Authorization/policyDefinitions/audit-vm-managed-disks",
+        "effective_effect": "Audit",
+        "selected_version": null,
+        "source_version": "1.0.0",
+        "version_binding": "unversioned",
+        "governance_owner": "platform-governance",
+        "enforcement_mode": "Default",
+        "identity_strategy": "none",
+        "assignment_id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/policyAssignments/audit-sub-subscription-built-in-audit",
+        "assignment_name": "audit-sub-subscription-built-in-audit"
+      }
+    }
+  },
+  "deployment_summary": {
+    "sensitive": false,
+    "type": ["object", {}],
+    "value": {
+      "assignment_count": 1,
+      "scope_types": ["subscription"],
+      "management_groups": 0,
+      "subscriptions": 1,
+      "resource_groups": 0,
+      "resources": 0
+    }
+  }
+}

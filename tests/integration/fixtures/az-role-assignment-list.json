@@ -1,0 +1,8 @@
+[
+  {
+    "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/roleAssignments/88888888-8888-8888-8888-888888888888",
+    "principalId": "77777777-7777-7777-7777-777777777777",
+    "roleDefinitionId": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/providers/Microsoft.Authorization/roleDefinitions/4a9ae827-6dc8-4573-8ac7-8239d42aa03f",
+    "scope": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture"
+  }
+]

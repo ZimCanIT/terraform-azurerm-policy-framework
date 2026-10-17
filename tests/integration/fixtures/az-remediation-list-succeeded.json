@@ -1,0 +1,13 @@
+[
+  {
+    "id": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.PolicyInsights/remediations/remediate-tag-rg",
+    "name": "remediate-tag-rg",
+    "createdOn": "2026-10-01T22:00:00Z",
+    "provisioningState": "Succeeded",
+    "deploymentStatus": {
+      "totalDeployments": 1,
+      "successfulDeployments": 1,
+      "failedDeployments": 0
+    }
+  }
+]

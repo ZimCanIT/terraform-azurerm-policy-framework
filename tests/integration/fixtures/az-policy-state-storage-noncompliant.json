@@ -1,0 +1,9 @@
+[
+  {
+    "resourceId": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Storage/storageAccounts/zctfpfixturestore",
+    "policyAssignmentId": "/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Authorization/policyAssignments/modify-tag-rg",
+    "policyDefinitionReferenceId": "add-costcentre-tag-member",
+    "complianceState": "NonCompliant",
+    "timestamp": "2026-10-01T22:00:00Z"
+  }
+]
