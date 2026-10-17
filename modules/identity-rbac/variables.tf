@@ -27,21 +27,10 @@ variable "assignments" {
   validation {
     condition = try(alltrue([
       for key, assignment in var.assignments :
-      contains(["management_group", "subscription", "resource_group", "resource"], assignment.intent.scope.type) && can(regex(
-        assignment.intent.scope.type == "management_group" ? "^/providers/Microsoft\\.Management/managementGroups/[^/]+$" :
-        assignment.intent.scope.type == "subscription" ? "^/subscriptions/[0-9a-fA-F-]{36}$" :
-        assignment.intent.scope.type == "resource_group" ? "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$" :
-        "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$",
-        trimspace(assignment.intent.scope.id)
-      ))
+      contains(local.scope_types, assignment.intent.scope.type) &&
+      can(regex(local.scope_patterns[assignment.intent.scope.type], trimspace(assignment.intent.scope.id)))
     ]), false)
-    error_message = "Assignment ${try(join(", ", [for key, assignment in var.assignments : key if !can(regex(
-      try(assignment.intent.scope.type, "") == "management_group" ? "^/providers/Microsoft\\.Management/managementGroups/[^/]+$" :
-      try(assignment.intent.scope.type, "") == "subscription" ? "^/subscriptions/[0-9a-fA-F-]{36}$" :
-      try(assignment.intent.scope.type, "") == "resource_group" ? "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$" :
-      "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$",
-      trimspace(try(assignment.intent.scope.id, ""))
-    ))]), "assignments (invalid container)")} must declare a valid management group, subscription, resource group or resource scope; resource scopes must name a resource and reject a bare provider namespace or resource type."
+    error_message = "Assignment ${try(join(", ", [for key, assignment in var.assignments : key if !contains(local.scope_types, try(assignment.intent.scope.type, "")) || !can(regex(local.scope_patterns[assignment.intent.scope.type], trimspace(try(assignment.intent.scope.id, ""))))]), "assignments (invalid container)")} must declare a valid management group, subscription, resource group or resource scope; resource scopes must name a resource and reject a bare provider namespace or resource type."
   }
 
   validation {
@@ -100,7 +89,7 @@ variable "assignments" {
       can(tolist(assignment.resolved.list_fields.role_definition_ids)) &&
       assignment.resolved.list_fields.role_definition_ids != null &&
       alltrue([
-        for candidate in assignment.resolved.list_fields.role_definition_ids : can(regex("^/(subscriptions/[0-9a-fA-F-]{36}/)?providers/Microsoft\\.Authorization/roleDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", trimspace(candidate)))
+        for candidate in assignment.resolved.list_fields.role_definition_ids : can(regex(local.role_definition_pattern, trimspace(candidate)))
       ]) &&
       (assignment.resolved.identity.required ? length(assignment.resolved.list_fields.role_definition_ids) > 0 : length(assignment.resolved.list_fields.role_definition_ids) == 0)
     ]), false)

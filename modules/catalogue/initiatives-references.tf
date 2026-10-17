@@ -14,9 +14,10 @@ locals {
   # Azure policy definitions can be referenced by a root built-in ID or by a
   # fully-qualified externally managed custom definition at subscription or
   # management-group scope. Resource/module IDs and bare custom names are not
-  # portable references and are intentionally rejected.
+  # portable references and are intentionally rejected. The built-in form is
+  # defined once, in definitions.tf.
   valid_policy_definition_id = [
-    "^/providers/Microsoft\\.Authorization/policyDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+    local.built_in_policy_definition_id_pattern,
     "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
     "^/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
   ]

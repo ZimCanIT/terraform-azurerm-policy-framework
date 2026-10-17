@@ -4,15 +4,21 @@ locals {
   # that would make a validation depend on the value it validates.
   guid_pattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 
+  # Scope prefixes. Every management-group and subscription form below derives
+  # from these, and the unkeyed member scope probe reads them too, so each
+  # prefix is written once.
+  management_group_prefix = "^/providers/Microsoft\\.Management/managementGroups/"
+  subscription_prefix     = "^/subscriptions/"
+
   built_in_definition_id_pattern = "^/providers/Microsoft\\.Authorization/policyDefinitions/${local.guid_pattern}$"
-  management_group_id_pattern    = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
+  management_group_id_pattern    = "${local.management_group_prefix}[^/]+$"
 
   # Accepted forms of a direct initiative member definition ID: built-in,
   # subscription custom and management-group custom.
   policy_definition_id_patterns = [
     local.built_in_definition_id_pattern,
-    "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
-    "^/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
+    "${local.subscription_prefix}[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
+    "${local.management_group_prefix}[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
   ]
 
   definition_entries = {

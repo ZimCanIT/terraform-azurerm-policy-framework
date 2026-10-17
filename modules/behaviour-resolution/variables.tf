@@ -86,7 +86,7 @@ variable "assignments" {
         alltrue([
           for role_id, grant_scope in assignment.role_grant_scopes :
           can(regex("^\\\".*\\\"$", jsonencode(role_id))) && trimspace(role_id) != "" &&
-          can(regex("^/providers/Microsoft\\.Management/managementGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$", trimspace(grant_scope)))
+          can(regex(local.role_grant_scope_pattern, trimspace(grant_scope)))
         ])
       )
     ]), false)
@@ -95,7 +95,7 @@ variable "assignments" {
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : can(keys(assignment.target)) && can(keys(assignment.scope)) && trimspace(assignment.target.reference_id) != "" && contains(["management_group", "subscription", "resource_group", "resource"], assignment.scope.type) && trimspace(assignment.scope.id) != ""
+      for _, assignment in var.assignments : can(keys(assignment.target)) && can(keys(assignment.scope)) && trimspace(assignment.target.reference_id) != "" && contains(local.scope_types, assignment.scope.type) && trimspace(assignment.scope.id) != ""
     ]), false)
     error_message = "Each assignment requires a target reference_id and a supported non-blank scope."
   }

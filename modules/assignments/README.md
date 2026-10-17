@@ -17,7 +17,7 @@ It does not read policy source files, compute effective behaviour, or create ide
 
 The module requires the canonical nested `intent` and `resolved` record emitted by `modules/behaviour-resolution`. `resolved.policy_definition_id` is authoritative for the Azure resource; direct targets may retain `intent.target.policy_definition_id` for traceability, and initiatives use the resolved initiative policy definition ID. Legacy flattened records are rejected. Provider configuration stays with the caller; the module declares its `required_providers` constraint only.
 
-Identity attachment is a separate top-level module input: `identity_bindings` is a caller-owned map of `{ id = "..." }` records keyed by assignment key for resolved user-assigned identities. The module attaches the binding but never creates the identity or grants roles.
+Identity attachment is a separate top-level module input. `identity_bindings` is a map keyed by assignment key whose values are the `assignment_binding` records of the identity-rbac module, which its `assignment_bindings` output returns, so the output wires in without reshaping. Each record has `assignment_key`, which must equal its key, `identity_strategy`, which is `none` or `user_assigned`, and the identifiers `id`, `identity_id` and `principal_id`. A `none` record carries null identifiers. A `user_assigned` record carries the identity resource ID in `id`, starting with `/`, and a GUID in `principal_id`. The module attaches the identity to the assignment and never creates the identity or grants roles.
 
 Optional intent fields are:
 
@@ -87,6 +87,23 @@ module "assignments" {
 ```
 
 The runnable scope and parameter fixture is in the [typed scopes example](examples/typed-scopes/README.md).
+
+## Azure permissions
+
+The assignment state creates policy assignments and attaches identities that already exist. The principal that applies it needs:
+
+| Resource | Operations | Scope |
+| --- | --- | --- |
+| Policy assignments | `Microsoft.Authorization/policyAssignments/read`, `write` and `delete` | The scope of each assignment |
+| Identity attachment | `Microsoft.ManagedIdentity/userAssignedIdentities/*/assign/action` | Each identity named in `identity_bindings` |
+
+Resource Policy Contributor (`36243c78-bf99-498c-9df9-86d9f8d28608`) at the assignment scope covers the first row. Managed Identity Operator (`f1a07417-d97a-45cb-824c-7a7467783830`) on the identity covers the second. Resource Policy Contributor also carries definition, exemption and remediation operations, so a state that must not hold those uses a custom role limited to the policy assignment operations. That a policy assignment needs the assign action on its identity is expected from the identity model and has not been confirmed with a least-privileged principal.
+
+This state needs no role assignment, identity creation, definition, exemption or remediation operation. Role contents were read from Microsoft Learn on 17 October 2026. Provider configuration stays with the caller.
+
+## Separation of duties
+
+Assignments decide where a control applies, with which parameters and at what enforcement. The module attaches the identity that `identity_bindings` names and declares no identity or role-assignment resource, so it cannot create an identity or grant a role. The repository gate fails if that changes. Keep the principal that applies assignments separate from the one that applies role grants, and give it Managed Identity Operator only on the identity resource group rather than on every identity in a subscription. Apply this state after content and role grants, and destroy it before them.
 
 ## Compatibility
 

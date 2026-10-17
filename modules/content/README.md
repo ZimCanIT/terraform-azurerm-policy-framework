@@ -201,6 +201,23 @@ This module replaces `modules/definitions` and `modules/initiatives`, which are 
 
 A caller with existing state moves each resource with a `moved` block or `terraform state mv` and confirms with a reviewed plan that nothing is replaced. The initiative input no longer takes a `definitions` variable: remove the `definitions = module.<definitions>.definitions` argument from the former initiatives call and pass both maps to this module.
 
+## Azure permissions
+
+The content state creates policy definitions and initiatives and nothing else. The principal that applies it needs these operations at the scope that holds them, which is the subscription or the management group named by `management_group_id`:
+
+| Resource | Operations |
+| --- | --- |
+| Custom policy definitions | `Microsoft.Authorization/policyDefinitions/read`, `write` and `delete` |
+| Initiatives | `Microsoft.Authorization/policySetDefinitions/read`, `write` and `delete` |
+
+The smallest built-in role that carries them is Resource Policy Contributor (`36243c78-bf99-498c-9df9-86d9f8d28608`). That role also carries policy assignment, exemption and remediation operations, so a state that must not hold those uses a custom role limited to the two rows above. Contributor is not enough, because it excludes `Microsoft.Authorization/*/Write`.
+
+This state needs no role assignment, identity, policy assignment, exemption or remediation operation. Role contents were read from Microsoft Learn on 17 October 2026. The operations are the ones Microsoft documents for these resource types, and a run with a least-privileged principal has not confirmed that the AzureRM provider needs no others. The module never selects credentials. Provider configuration stays with the caller.
+
+## Separation of duties
+
+Content changes what a control means and never where it applies. Apply it first, from the catalogue at one commit, with a principal that holds definition rights only. Assignments, role grants and operations consume the `definitions` and `initiatives` outputs and write no definitions. Because the package never reads remote state, the hand-off between states is explicit: pass the two envelopes through `terraform_remote_state` or a pipeline variable, and use the same catalogue commit in every state that recomputes resolution. A principal that can write definitions can change the effect of an existing assignment without touching it, so review definition changes before they are applied.
+
 ## Compatibility
 
 The module declares Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`. The repository's compatibility workflow runs the module suites on Terraform 1.12.0 with AzureRM 5.0.0 and on Terraform 1.15.9 with AzureRM 5.5.0, selecting each provider with a throwaway override file so `versions.tf` is never rewritten. AzureRM accepts member version constraints in `major.minor.*` form at this boundary. Exact pins are retained as intent but rejected before resource creation because the provider schema cannot represent them without widening caller intent. The module configures no provider or backend. Callers own provider aliases and credentials, and the local lock selection is validation evidence, not a consumer module pin.

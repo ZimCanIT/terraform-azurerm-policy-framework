@@ -1,6 +1,23 @@
 locals {
-  # Shared grammar for the fail-closed grant preconditions; resource scopes must name a resource.
-  grant_scope_pattern     = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
+  # Grammar constants, written once for this module. Variable validations read
+  # them, so they must stay independent of every variable. Subscription IDs are
+  # GUIDs, as Azure issues them, and a resource scope names a provider, a type
+  # and a resource. The fail-closed grant preconditions reject a bare provider
+  # namespace or resource type.
+  scope_types = ["management_group", "subscription", "resource_group", "resource"]
+
+  scope_patterns = {
+    management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
+    subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
+    resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
+  }
+
+  # Any single grant scope, built from the map above so it cannot drift from the
+  # typed patterns.
+  grant_scope_pattern = join("|", [for type in local.scope_types : local.scope_patterns[type]])
+
+  # Tenant-level or subscription-level role definition resource ID.
   role_definition_pattern = "^/(subscriptions/[0-9a-fA-F-]{36}/)?providers/Microsoft\\.Authorization/roleDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 
   assignment_entries = {

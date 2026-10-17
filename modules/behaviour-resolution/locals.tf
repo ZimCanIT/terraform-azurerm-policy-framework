@@ -1,12 +1,20 @@
 locals {
-  # Shared scope grammar: subscription IDs are GUIDs, as Azure issues them, so
-  # the resolver, identity-rbac and operations agree on one form.
+  # Scope grammar, written once for this module. Variable validations read
+  # these constants, so they must stay independent of every variable.
+  # Subscription IDs are GUIDs, as Azure issues them, and a resource scope names
+  # a provider, a type and a resource.
+  scope_types = ["management_group", "subscription", "resource_group", "resource"]
+
   scope_patterns = {
     management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
     subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
     resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
     resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
   }
+
+  # Any single scope, for role_grant_scopes values, built from the map above so
+  # it cannot drift from the typed patterns.
+  role_grant_scope_pattern = join("|", [for type in local.scope_types : local.scope_patterns[type]])
 
   normalised_effects = {
     audit             = "Audit"

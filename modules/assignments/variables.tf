@@ -67,7 +67,7 @@ variable "assignments" {
       length(setsubtract(toset(keys(assignment.intent.target)), toset(["reference_id", "definition_key", "initiative_key", "policy_definition_id"]))) == 0 &&
       length(setsubtract(toset(keys(assignment.intent.scope)), toset(["type", "id"]))) == 0 &&
       trimspace(try(assignment.intent.target.reference_id, "")) != "" &&
-      contains(["management_group", "subscription", "resource_group", "resource"], try(assignment.intent.scope.type, "")) &&
+      contains(local.scope_types, try(assignment.intent.scope.type, "")) &&
       trimspace(try(assignment.intent.scope.id, "")) != "" &&
       (try(assignment.intent.parameters, null) == null || can(keys(assignment.intent.parameters))) &&
       (try(assignment.intent.selectors, null) == null || can(regex("^\\[", jsonencode(assignment.intent.selectors)))) &&
@@ -83,14 +83,8 @@ variable "assignments" {
   validation {
     condition = try(alltrue([
       for _, assignment in var.assignments :
-      contains(["management_group", "subscription", "resource_group", "resource"], assignment.intent.scope.type) &&
-      can(regex(
-        assignment.intent.scope.type == "management_group" ? "^/providers/Microsoft\\.Management/managementGroups/[^/]+$" :
-        assignment.intent.scope.type == "subscription" ? "^/subscriptions/[0-9a-fA-F-]{36}$" :
-        assignment.intent.scope.type == "resource_group" ? "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$" :
-        "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/.+/.+$",
-        trimspace(assignment.intent.scope.id)
-      ))
+      contains(local.scope_types, assignment.intent.scope.type) &&
+      can(regex(local.scope_patterns[assignment.intent.scope.type], trimspace(assignment.intent.scope.id)))
     ]), false)
     error_message = "Each assignment scope must declare a supported type and a matching Azure scope ID."
   }

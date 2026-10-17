@@ -356,8 +356,8 @@ locals {
         scope_valid = (view.is_keyed ?
           (view.definition != null && (view.definition.management_group_id == null || view.definition.management_group_id == view.initiative.management_group_id)) :
           (
-            (view.supplied_policy_definition_id == null || !can(regex("^/subscriptions/", view.supplied_policy_definition_id)) || view.initiative.management_group_id == null) &&
-            (view.supplied_policy_definition_id == null || !can(regex("^/providers/Microsoft\\.Management/managementGroups/", view.supplied_policy_definition_id)) || view.initiative.management_group_id != null)
+            (view.supplied_policy_definition_id == null || !can(regex(local.subscription_prefix, view.supplied_policy_definition_id)) || view.initiative.management_group_id == null) &&
+            (view.supplied_policy_definition_id == null || !can(regex(local.management_group_prefix, view.supplied_policy_definition_id)) || view.initiative.management_group_id != null)
           )
         )
         parameters_valid = try(view.supplied_parameter_values == null || can(keys(view.supplied_parameter_values)), false)

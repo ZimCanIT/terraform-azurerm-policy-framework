@@ -89,6 +89,23 @@ module "identity_rbac" {
 }
 ```
 
+## Azure permissions
+
+The role-grant state creates user-assigned identities and the role assignments those identities need. The principal that applies it needs two kinds of access:
+
+| Resource | Operations | Scope |
+| --- | --- | --- |
+| User-assigned identities | `Microsoft.ManagedIdentity/userAssignedIdentities/read`, `write` and `delete` | The identity resource group |
+| Role assignments | `Microsoft.Authorization/roleAssignments/read`, `write` and `delete` | Each grant scope the resolver names |
+
+Managed Identity Contributor (`e40ec5ca-96e0-45a2-b4ff-59039f2c2b59`) on the identity resource group covers the first row. Role Based Access Control Administrator (`f58310d9-a9f6-439a-9e8d-f62e7b41a168`) at each grant scope covers the second. Prefer it with an ABAC condition over User Access Administrator or Owner. The condition limits which role definitions the principal may assign, here the resolver's candidate roles, and which principal types may receive them, here `ServicePrincipal`, which is the type this module sets. Microsoft documents this as constrained delegation of role assignment management. User Access Administrator grants `Microsoft.Authorization/*`, far more than this state needs.
+
+This state needs no policy definition, policy assignment, exemption or remediation operation. Role contents were read from Microsoft Learn on 17 October 2026. The module already refuses roles outside the resolver's candidate list and refuses Contributor and Owner. The ABAC condition repeats that limit in Azure, so a later change to a pipeline cannot widen it. The condition itself, and a run with a least-privileged principal, are not exercised by this repository's tests.
+
+## Separation of duties
+
+This is the state that turns a policy decision into privilege. A Modify or DeployIfNotExists assignment needs roles for its identity, and applying them needs a role-assignment writer. Keep that writer separate from the principal that creates policy assignments. The assignments state only attaches an identity that already exists, through `assignment_bindings`, and cannot create one or grant a role. A pipeline that held both rights could give any identity any role, which is the escalation the split prevents. Review `replacement_impact` before applying, because replacing an identity changes its principal ID and every grant that depends on it. The module cannot enforce that two pipelines use two principals. The caller's pipeline configuration does that, for example with one federated workload identity credential per state.
+
 ## Compatibility and validation
 
 This child module targets Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`. Provider aliases, credentials and scope bindings remain caller-owned. `terraform validate` checks configuration and provider schema only; it does not execute variable validation or resource preconditions.

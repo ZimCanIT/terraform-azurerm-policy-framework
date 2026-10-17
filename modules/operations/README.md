@@ -146,6 +146,23 @@ module "operations" {
 }
 ```
 
+## Azure permissions
+
+The operations state creates remediations and exemptions for assignments that already exist. The principal that applies it needs:
+
+| Resource | Operations | Scope |
+| --- | --- | --- |
+| Remediations | `Microsoft.PolicyInsights/remediations/read`, `write` and `delete` | The scope of each request |
+| Exemptions | `Microsoft.Authorization/policyExemptions/read`, `write` and `delete` | The scope of each exemption |
+
+Resource Policy Contributor (`36243c78-bf99-498c-9df9-86d9f8d28608`) at the operation scope covers both rows, because it grants `Microsoft.PolicyInsights/*` and `Microsoft.Authorization/policyexemptions/*`. It also grants definition and assignment operations, so a state that must not hold those uses a custom role limited to the two rows above. Azure runs remediation deployments with the managed identity of the policy assignment, which the role-grant state prepared, so this state needs no role assignment and holds none of that identity's rights.
+
+This state needs no definition, assignment, identity or role-assignment operation. Role contents and operation names were read from Microsoft Learn on 17 October 2026. A run with a least-privileged principal has not confirmed that the AzureRM provider needs no other operation. Provider configuration stays with the caller.
+
+## Separation of duties
+
+Operations are deliberate and time-bound. An exemption weakens enforcement, and a remediation changes resources through the assignment's identity. Keep the approvers and appliers of operations apart from the principals that author assignments, so that an assignment author cannot approve an exemption for their own assignment. Each remediation request carries an approval reference and each exemption an owner, a reason and an expiry. The module checks every request against the resolved assignment record for its ID, scope and eligibility, so it never targets an assignment the caller's records do not contain. Apply this state last and destroy it first.
+
 ## Compatibility and validation
 
 The module declares Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`. Provider configuration stays with the caller. The module declares `required_providers` only.
