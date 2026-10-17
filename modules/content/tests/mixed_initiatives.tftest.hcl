@@ -3,9 +3,11 @@ mock_provider "azurerm" {}
 variables {
   definitions = {
     typed = {
-      source_type = "built_in"
-      id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
-      parameters  = { text = { type = "String", defaultValue = "default" } }
+      source_type          = "built_in"
+      display_name         = "Typed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      version_constraint   = "1.0.*"
+      parameters           = { text = { type = "String", defaultValue = "default" } }
     }
   }
 }

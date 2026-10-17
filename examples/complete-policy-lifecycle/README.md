@@ -5,7 +5,7 @@ This example composes all eight child modules through the published root module:
 ## Content flow
 
 1. A portable catalogue fixture (custom definition, initiative and built-in reference) enters the catalogue source adapter.
-2. The definitions and initiatives modules turn the canonical envelopes into Azure Policy content.
+2. The content module turns the canonical envelopes into Azure Policy definitions and initiatives.
 3. The behaviour resolver derives the effective effect, version, identity requirement and remediation eligibility for the requested assignment.
 4. The assignments module creates the typed assignment; the identity-rbac module creates its user-assigned managed identity and least-privilege role grant.
 5. The remediations module issues an explicit, eligible remediation request against the disposable target and reports status.

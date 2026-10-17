@@ -15,7 +15,7 @@ run "hands_native_hcl_to_definitions_without_catalogue_fields" {
 
   assert {
     condition     = output.definitions["allowed_locations"].policy_definition_id == "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c"
-    error_message = "Catalogue must preserve the definition ID required by modules/definitions."
+    error_message = "Catalogue must preserve the definition ID required by modules/content."
   }
 
   assert {

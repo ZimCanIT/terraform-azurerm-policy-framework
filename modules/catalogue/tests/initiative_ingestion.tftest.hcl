@@ -27,7 +27,7 @@ run "normalizes_native_and_json_initiatives" {
 
   assert {
     condition     = output.initiatives["security_baseline"].policy_definition_references[0].definition_key == "allowed_locations"
-    error_message = "JSON initiatives must preserve catalogue member references for modules/initiatives."
+    error_message = "JSON initiatives must preserve catalogue member references for modules/content."
   }
 
   assert {

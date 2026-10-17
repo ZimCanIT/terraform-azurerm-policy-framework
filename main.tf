@@ -9,23 +9,18 @@ module "catalogue" {
   native_initiatives           = var.catalogue.native_initiatives
 }
 
-module "definitions" {
-  source = "./modules/definitions"
+module "content" {
+  source = "./modules/content"
   # Caller entries merge over catalogue entries: an empty catalogue leaves the
   # caller input alone and a matching key overrides the catalogue record.
   definitions = merge(module.catalogue.definitions, var.definitions)
-}
-
-module "initiatives" {
-  source      = "./modules/initiatives"
   initiatives = merge(module.catalogue.initiatives, var.initiatives)
-  definitions = module.definitions.definitions
 }
 
 module "behaviour_resolution" {
   source      = "./modules/behaviour-resolution"
-  definitions = module.definitions.definitions
-  initiatives = module.initiatives.initiatives
+  definitions = module.content.definitions
+  initiatives = module.content.initiatives
   assignments = var.assignments
 }
 
@@ -47,10 +42,10 @@ module "governance" {
   source       = "./governance/requirements-and-ownership"
   requirements = var.requirements
   control_inventory = toset(concat(
-    keys(module.definitions.definitions),
-    keys(module.initiatives.initiatives),
+    keys(module.content.definitions),
+    keys(module.content.initiatives),
     flatten([
-      for initiative in values(module.initiatives.initiatives) : [
+      for initiative in values(module.content.initiatives) : [
         for member in try(initiative.policy_definition_references, []) : member.reference_id
       ]
     ])

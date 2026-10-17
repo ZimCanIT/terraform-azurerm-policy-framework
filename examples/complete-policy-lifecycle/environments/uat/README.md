@@ -59,8 +59,8 @@ The role grant address is derived from the resolved required-role record, which 
 
 ```powershell
 terraform -chdir=examples/complete-policy-lifecycle apply -input=false `
-  -target=module.framework.module.definitions.azurerm_policy_definition.this `
-  -target=module.framework.module.initiatives.azurerm_policy_set_definition.subscription `
+  -target=module.framework.module.content.azurerm_policy_definition.this `
+  -target=module.framework.module.content.azurerm_policy_set_definition.subscription `
   -var-file=environments/uat/uat.tfvars
 ```
 

@@ -54,7 +54,7 @@ output "source_summary" {
 }
 
 output "definitions" {
-  description = "Canonical policy definition entries keyed by stable catalogue key; pass directly to modules/definitions.definitions."
+  description = "Canonical policy definition entries keyed by stable catalogue key; pass directly to the modules/content definitions input."
   value       = local.definitions
 
   precondition {
@@ -64,7 +64,7 @@ output "definitions" {
 }
 
 output "initiatives" {
-  description = "Canonical policy initiative entries keyed by stable catalogue key; pass to the modules/initiatives.initiatives input. Catalogue preserves stable keys, member references and declared version intent only; the initiatives module owns version inheritance and effective-version decisions."
+  description = "Canonical policy initiative entries keyed by stable catalogue key; pass to the modules/content initiatives input. Catalogue preserves stable keys, member references and declared version intent only; the initiatives module owns version inheritance and effective-version decisions."
   value       = local.initiatives
 
   precondition {

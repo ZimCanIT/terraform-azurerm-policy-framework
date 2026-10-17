@@ -2,9 +2,9 @@
 
 `catalogue` is the source-adapter boundary for the framework. It accepts
 native Terraform HCL and constrained JSON policy-library inputs, then produces
-canonical definition entries for `modules/definitions` and canonical
-initiative entries for `modules/initiatives`. It does not configure
-providers, perform Azure lookups or create Azure resources.
+canonical definition entries and canonical initiative entries for
+`modules/content`. It does not configure providers, perform Azure lookups or
+create Azure resources.
 
 Catalogue is the only file-reading boundary in the package. It declares and
 preserves capability and governance data but does not make behaviour, version,
@@ -23,7 +23,7 @@ projection).
 The same canonical envelope requirements apply to native HCL and JSON input.
 Catalogue validates required fields, source-type field exclusivity and container
 shapes for native HCL and JSON definition entries and for initiatives.
-`modules/definitions` still owns deployment validation and defaulting,
+`modules/content` still owns deployment validation and defaulting,
 including Azure identity rules and provider-facing normalisation.
 
 | Envelope | Required | Version intent |
@@ -161,13 +161,14 @@ module "catalogue" {
   }
 }
 
-module "definitions" {
-  source      = "../../modules/definitions"
+module "content" {
+  source      = "../../modules/content"
   definitions = module.catalogue.definitions
+  initiatives = module.catalogue.initiatives
 }
 ```
 
-`modules/definitions` owns deployment validation and defaulting. Catalogue
+`modules/content` owns deployment validation and defaulting. Catalogue
 only checks the source envelope and preserves structured values.
 
 ## JSON library
@@ -191,12 +192,12 @@ envelope rules that apply to every JSON source directory.
 
 | Output | Contents |
 | --- | --- |
-| `definitions` | Canonical definition entries keyed by stable catalogue key, ready to pass directly to `modules/definitions`. |
-| `initiatives` | Canonical initiative envelopes keyed by stable catalogue key, consumed by `modules/initiatives` for composition and resource creation. |
+| `definitions` | Canonical definition entries keyed by stable catalogue key, ready to pass directly to the `definitions` input of `modules/content`. |
+| `initiatives` | Canonical initiative envelopes keyed by stable catalogue key, ready to pass directly to the `initiatives` input of `modules/content`, which owns composition and resource creation. |
 | `source_summary` | Non-sensitive provenance with exactly one record per actual entry (`catalogue_key`, `source_type`, `authoring_format`, `source_path`, `companion_source_path`). Companions are attached to their parent record, never emitted separately. |
 
 `definitions` excludes catalogue file paths and ingestion mechanics, so it can
-be passed directly to `modules/definitions`. `initiatives` preserves stable
+be passed directly to `modules/content`. `initiatives` preserves stable
 initiative keys and member definition references; catalogue does not implement
 the initiative resource lifecycle.
 
@@ -223,7 +224,7 @@ terraform -chdir=modules/catalogue/examples/mixed validate -no-color
 Catalogue requires Terraform `>= 1.12.0`; the source adapters rely on nullable
 validation guards and validation short-circuiting introduced in that release.
 Only Terraform 1.15.9 has been exercised locally, so the minimum is declared
-but untested at that version. `modules/definitions` declares Terraform
+but untested at that version. `modules/content` declares Terraform
 `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0` independently.
 
 ## Tests
@@ -246,5 +247,5 @@ source-directory and companion rules, malformed and non-object containers (one
 fixture directory per family, one file per case), companion type preservation,
 HCL/JSON parity, initiative member and group validation, provenance accuracy and
 bulk ingestion. `tests/contracts/catalogue-pipeline` wires catalogue into
-`modules/definitions`, `modules/initiatives` and `modules/behaviour-resolution`
+`modules/content` and `modules/behaviour-resolution`
 with a mocked AzureRM provider and asserts the hand-off envelopes end to end.

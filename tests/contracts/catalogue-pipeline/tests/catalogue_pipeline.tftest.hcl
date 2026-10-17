@@ -178,7 +178,7 @@ run "catalogue_to_definitions_preserves_strict_scalar_types" {
       (try(definition.pinned_version, null) == null || can(regex("^\\\".*\\\"$", jsonencode(definition.pinned_version)))) &&
       (try(definition.metadata.version, null) == null || can(regex("^\\\".*\\\"$", jsonencode(definition.metadata.version))))
     ])
-    error_message = "Every catalogue-emitted string field must be a strict string so modules/definitions does not reject the hand-off."
+    error_message = "Every catalogue-emitted string field must be a strict string so modules/content does not reject the hand-off."
   }
 
   assert {

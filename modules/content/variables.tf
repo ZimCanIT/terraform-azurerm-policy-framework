@@ -1,5 +1,5 @@
 variable "definitions" {
-  description = "Canonical policy definition entries keyed by stable catalogue key. Custom entries are created; built-in entries are passed through as references."
+  description = "Canonical policy definition entries keyed by stable catalogue key. Custom entries are created; built-in entries are passed through as references. Keyed initiative members resolve against the resulting definition IDs inside this module."
   type        = any
   default     = {}
 
@@ -124,7 +124,7 @@ variable "definitions" {
       for _, definition in var.definitions :
       try(definition.source_type != "custom", true) || try(
         try(trimspace(definition.management_group_id), "") == "" ||
-        can(regex("^/providers/Microsoft\\.Management/managementGroups/[^/]+$", try(trimspace(definition.management_group_id), ""))),
+        can(regex(local.management_group_id_pattern, try(trimspace(definition.management_group_id), ""))),
         false
       )
     ]), false)
@@ -135,7 +135,7 @@ variable "definitions" {
     condition = try(alltrue([
       for _, definition in var.definitions :
       try(definition.source_type != "built_in", true) || try(
-        can(regex("^/providers/Microsoft\\.Authorization/policyDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", trimspace(definition.policy_definition_id))),
+        can(regex(local.built_in_definition_id_pattern, trimspace(definition.policy_definition_id))),
         false
       )
     ]), false)
@@ -223,5 +223,35 @@ variable "definitions" {
       (try(definition.governance == null, true) || can(keys(definition.governance)))
     ]), false)
     error_message = "supported_overrides and selectors must be lists of objects; non_compliance_messages, capabilities and governance must be objects when supplied."
+  }
+}
+
+variable "initiatives" {
+  description = "Canonical policy initiative entries keyed by stable catalogue key. Entries come from modules/catalogue and preserve member references, groups, parameters, governance and version intent. Keyed members resolve against the definitions input."
+  type        = any
+  default     = {}
+
+  validation {
+    condition     = can(keys(var.initiatives)) && !can(tolist(var.initiatives))
+    error_message = "initiatives must be a keyed object or map of initiative objects."
+  }
+
+  validation {
+    condition = try(alltrue([
+      for key, initiative in var.initiatives :
+      trimspace(key) != "" && can(keys(initiative))
+    ]), false)
+    error_message = "Each initiative must have a non-blank catalogue key and an object value."
+  }
+
+  validation {
+    condition = try(alltrue([
+      for _, initiative in var.initiatives :
+      length(setsubtract(toset(keys(initiative)), toset([
+        "catalogue_key", "name", "display_name", "description", "metadata", "parameters",
+        "policy_definition_references", "policy_definition_groups", "management_group_id", "governance", "version"
+      ]))) == 0
+    ]), false)
+    error_message = "Initiatives may contain only fields from the canonical initiatives contract."
   }
 }

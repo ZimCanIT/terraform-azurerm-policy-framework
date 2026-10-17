@@ -9,12 +9,12 @@ output "catalogue" {
 
 output "definitions" {
   description = "Canonical definition resources keyed by stable catalogue key."
-  value       = module.definitions.definitions
+  value       = module.content.definitions
 }
 
 output "initiatives" {
   description = "Canonical initiative resources keyed by stable catalogue key."
-  value       = module.initiatives.initiatives
+  value       = module.content.initiatives
 }
 
 output "resolved_assignments" {

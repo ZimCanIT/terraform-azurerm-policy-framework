@@ -1,6 +1,12 @@
 mock_provider "azurerm" {
   override_during = plan
 
+  mock_resource "azurerm_policy_definition" {
+    defaults = {
+      id = "/providers/Microsoft.Management/managementGroups/platform/providers/Microsoft.Authorization/policyDefinitions/scoped"
+    }
+  }
+
   mock_resource "azurerm_policy_set_definition" {
     defaults = {
       id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policySetDefinitions/mock"
@@ -20,12 +26,12 @@ run "preserves_member_version_and_empty_state" {
   variables {
     definitions = {
       allowed = {
-        source_type         = "built_in"
-        id                  = "/providers/Microsoft.Authorization/policyDefinitions/allowed"
-        created_by_module   = false
-        parameters          = { memberSetting = { type = "String" } }
-        role_definition_ids = []
-        version_constraint  = "1.0.*"
+        source_type          = "built_in"
+        display_name         = "Allowed"
+        policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        parameters           = { memberSetting = { type = "String" } }
+        role_definition_ids  = []
+        version_constraint   = "1.0.*"
       }
     }
     initiatives = {
@@ -154,8 +160,10 @@ run "rejects_case_insensitive_duplicate_member_references" {
   variables {
     definitions = {
       allowed = {
-        source_type = "built_in"
-        id          = "/providers/Microsoft.Authorization/policyDefinitions/allowed"
+        source_type          = "built_in"
+        display_name         = "Allowed"
+        policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        version_constraint   = "1.0.*"
       }
     }
     initiatives = {
@@ -178,8 +186,10 @@ run "rejects_member_reference_to_unknown_group" {
   variables {
     definitions = {
       allowed = {
-        source_type = "built_in"
-        id          = "/providers/Microsoft.Authorization/policyDefinitions/allowed"
+        source_type          = "built_in"
+        display_name         = "Allowed"
+        policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        version_constraint   = "1.0.*"
       }
     }
     initiatives = {
@@ -207,9 +217,11 @@ run "rejects_set_and_member_parameter_name_collision" {
   variables {
     definitions = {
       allowed = {
-        source_type = "built_in"
-        id          = "/providers/Microsoft.Authorization/policyDefinitions/allowed"
-        parameters  = { shared = { type = "String" } }
+        source_type          = "built_in"
+        display_name         = "Allowed"
+        policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        version_constraint   = "1.0.*"
+        parameters           = { shared = { type = "String" } }
       }
     }
     initiatives = {
@@ -235,8 +247,13 @@ run "rejects_definition_scope_mismatch" {
     definitions = {
       scoped = {
         source_type         = "custom"
-        id                  = "/providers/Microsoft.Authorization/policyDefinitions/scoped"
+        display_name        = "Scoped"
+        version             = "1.0.0"
         management_group_id = "/providers/Microsoft.Management/managementGroups/platform"
+        policy_rule = {
+          if   = { field = "type", equals = "Microsoft.Resources/subscriptions" }
+          then = { effect = "audit" }
+        }
       }
     }
     initiatives = {
@@ -260,11 +277,15 @@ run "preserves_management_group_resource_and_member_contract" {
     definitions = {
       scoped = {
         source_type         = "custom"
-        id                  = "/providers/Microsoft.Authorization/policyDefinitions/scoped"
+        display_name        = "Scoped"
+        version             = "1.0.0"
         management_group_id = "/providers/Microsoft.Management/managementGroups/platform"
-        created_by_module   = true
         parameters          = { location = { type = "String" } }
         role_definition_ids = ["/providers/Microsoft.Authorization/roleDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
+        policy_rule = {
+          if   = { field = "type", equals = "Microsoft.Resources/subscriptions" }
+          then = { effect = "audit" }
+        }
       }
     }
     initiatives = {

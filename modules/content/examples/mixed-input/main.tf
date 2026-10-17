@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.7.0"
+  required_version = ">= 1.12.0"
 
   required_providers {
     azurerm = {
@@ -28,7 +28,7 @@ provider "azurerm" {
   features {}
 }
 
-module "definitions" {
+module "content" {
   source = "../../"
 
   definitions = {
@@ -83,19 +83,19 @@ module "definitions" {
 }
 
 output "definitions" {
-  # Pass this canonical map to downstream initiative or assignment modules.
-  description = "Canonical definitions for downstream initiative and assignment modules."
-  value       = module.definitions.definitions
+  # Pass this canonical map to downstream assignment resolution.
+  description = "Canonical definitions for downstream assignment resolution."
+  value       = module.content.definitions
 }
 
 output "custom_definition_ids" {
   # This map contains only Azure resources created by this example.
-  description = "IDs created by the definitions module."
-  value       = module.definitions.custom_definition_ids
+  description = "IDs created by the content module."
+  value       = module.content.custom_definition_ids
 }
 
 output "built_in_definition_ids" {
   # This map contains references only; built-ins are never created here.
   description = "Built-in IDs passed through without creating or reading Azure resources."
-  value       = module.definitions.built_in_definition_ids
+  value       = module.content.built_in_definition_ids
 }

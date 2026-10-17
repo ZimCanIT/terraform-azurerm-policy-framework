@@ -3,12 +3,12 @@ mock_provider "azurerm" {}
 variables {
   definitions = {
     allowed = {
-      source_type         = "built_in"
-      id                  = "/providers/Microsoft.Authorization/policyDefinitions/allowed"
-      created_by_module   = false
-      parameters          = { memberSetting = { type = "String" } }
-      role_definition_ids = []
-      version_constraint  = "1.0.*"
+      source_type          = "built_in"
+      display_name         = "Allowed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      parameters           = { memberSetting = { type = "String" } }
+      role_definition_ids  = []
+      version_constraint   = "1.0.*"
     }
   }
   initiatives = {

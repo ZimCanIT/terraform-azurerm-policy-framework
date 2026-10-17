@@ -1,4 +1,20 @@
 locals {
+  # Grammar constants, written once for this module. Variable validations read
+  # them, so they must never reference a variable or anything derived from one:
+  # that would make a validation depend on the value it validates.
+  guid_pattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+
+  built_in_definition_id_pattern = "^/providers/Microsoft\\.Authorization/policyDefinitions/${local.guid_pattern}$"
+  management_group_id_pattern    = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
+
+  # Accepted forms of a direct initiative member definition ID: built-in,
+  # subscription custom and management-group custom.
+  policy_definition_id_patterns = [
+    local.built_in_definition_id_pattern,
+    "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
+    "^/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
+  ]
+
   definition_entries = {
     for key, definition in var.definitions :
     key => {

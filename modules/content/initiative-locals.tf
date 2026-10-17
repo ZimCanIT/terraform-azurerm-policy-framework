@@ -11,12 +11,6 @@ locals {
 
   initiative_group_fields = toset(["name", "display_name", "description", "metadata"])
 
-  policy_definition_id_patterns = [
-    "^/providers/Microsoft\\.Authorization/policyDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-    "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
-    "^/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
-  ]
-
   initiative_entries = {
     for key, initiative in var.initiatives : key => {
       catalogue_key                = key
@@ -30,27 +24,6 @@ locals {
       version                      = try(trimspace(initiative.version), "") != "" ? trimspace(initiative.version) : null
       policy_definition_references = try(initiative.policy_definition_references, null)
       policy_definition_groups     = try(initiative.policy_definition_groups, null)
-    }
-  }
-
-  definition_entries = {
-    for key, definition in var.definitions : key => {
-      catalogue_key           = key
-      id                      = try(definition.id, null)
-      source_type             = try(definition.source_type, null)
-      created_by_module       = try(definition.created_by_module, null)
-      parameters              = try(definition.parameters, null)
-      role_definition_ids     = try(definition.role_definition_ids, null)
-      capabilities            = try(definition.capabilities, null)
-      supported_effects       = try(definition.supported_effects, null)
-      supported_overrides     = try(definition.supported_overrides, null)
-      selectors               = try(definition.selectors, null)
-      non_compliance_messages = try(definition.non_compliance_messages, null)
-      governance              = try(definition.governance, null)
-      management_group_id     = try(trimspace(definition.management_group_id), "") != "" ? trimspace(definition.management_group_id) : null
-      version                 = try(trimspace(definition.version), "") != "" ? trimspace(definition.version) : null
-      version_constraint      = try(trimspace(definition.version_constraint), "") != "" ? trimspace(definition.version_constraint) : null
-      pinned_version          = try(trimspace(definition.pinned_version), "") != "" ? trimspace(definition.pinned_version) : null
     }
   }
 
@@ -84,7 +57,7 @@ locals {
       reference_id                  = try(trimspace(record.reference.reference_id), "")
       is_keyed                      = try(trimspace(record.reference.definition_key), "") != ""
       definition_key                = try(trimspace(record.reference.definition_key), "") != "" ? trimspace(record.reference.definition_key) : null
-      definition                    = try(trimspace(record.reference.definition_key), "") != "" && contains(keys(local.definition_entries), trimspace(record.reference.definition_key)) ? local.definition_entries[trimspace(record.reference.definition_key)] : null
+      definition                    = try(trimspace(record.reference.definition_key), "") != "" && contains(keys(local.definitions), trimspace(record.reference.definition_key)) ? local.definitions[trimspace(record.reference.definition_key)] : null
       supplied_version_constraint   = try(trimspace(record.reference.version_constraint), "") != "" ? trimspace(record.reference.version_constraint) : null
       supplied_pinned_version       = try(trimspace(record.reference.pinned_version), "") != "" ? trimspace(record.reference.pinned_version) : null
       supplied_policy_definition_id = try(trimspace(record.reference.policy_definition_id), "") != "" ? trimspace(record.reference.policy_definition_id) : null
@@ -147,7 +120,7 @@ locals {
 
   parameter_schema_contexts = merge(
     {
-      for key, definition in local.definition_entries : "definition:${key}" => {
+      for key, definition in local.definitions : "definition:${key}" => {
         owner_type = "definition"
         owner_key  = key
         schema     = definition.parameters
@@ -357,7 +330,7 @@ locals {
         parameters_valid           = initiative.parameters == null || can(keys(initiative.parameters))
         governance_valid           = initiative.governance == null || can(keys(initiative.governance))
         version_valid              = initiative.version == null || can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+$", initiative.version))
-        management_group_id_valid  = initiative.management_group_id == null || can(regex("^/providers/Microsoft\\.Management/managementGroups/[^/]+$", initiative.management_group_id))
+        management_group_id_valid  = initiative.management_group_id == null || can(regex(local.management_group_id_pattern, initiative.management_group_id))
         group_container_valid      = initiative.policy_definition_groups == null || try(!can(keys(initiative.policy_definition_groups)) && alltrue([for group in initiative.policy_definition_groups : can(keys(group))]), false)
         group_names_unique_valid   = initiative.policy_definition_groups == null || try(length(distinct([for group in initiative.policy_definition_groups : lower(trimspace(group.name))])) == length(initiative.policy_definition_groups), false)
         reference_ids_unique_valid = try(length(distinct([for reference in initiative.policy_definition_references : lower(trimspace(reference.reference_id))])) == length(initiative.policy_definition_references), false)
@@ -378,7 +351,7 @@ locals {
           try(view.reference[field], null) == null || can(regex("^\\\".*\\\"$", jsonencode(view.reference[field])))
         ]) && (try(view.reference.required, null) == null || can(regex("^(true|false)$", jsonencode(view.reference.required)))), false)
         source_valid               = try(length([for supplied in [view.definition_key, view.supplied_policy_definition_id] : supplied if supplied != null]) == 1, false)
-        definition_exists_valid    = !view.is_keyed || contains(keys(local.definition_entries), view.definition_key)
+        definition_exists_valid    = !view.is_keyed || contains(keys(local.definitions), view.definition_key)
         policy_definition_id_valid = try(view.is_keyed || anytrue([for pattern in local.policy_definition_id_patterns : can(regex(pattern, view.supplied_policy_definition_id))]), false)
         scope_valid = (view.is_keyed ?
           (view.definition != null && (view.definition.management_group_id == null || view.definition.management_group_id == view.initiative.management_group_id)) :

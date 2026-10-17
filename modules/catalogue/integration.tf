@@ -1,6 +1,6 @@
 locals {
   # Source adapters own decoding. This final boundary only combines their
-  # canonical, keyed maps before handing them to modules/definitions.
+  # canonical, keyed maps before handing them to modules/content.
   definition_sources = {
     native = local.native_definitions
     json   = local.json_definitions
@@ -33,7 +33,7 @@ locals {
   ])
 
   # Do not add catalogue-only provenance fields here. The result deliberately
-  # remains the definitions module's canonical input envelope.
+  # remains the content module's canonical definitions input envelope.
   definitions = merge(
     local.definition_sources.native,
     local.definition_sources.json,

@@ -88,7 +88,7 @@ module "catalogue" {
     }
 
     # P20 hand-off proof: every documented string scalar is supplied as a
-    # strict string so modules/definitions can accept the emitted entry at its
+    # strict string so modules/content can accept the emitted entry at its
     # variable boundary.
     native_strict_scalars = {
       source_type         = "custom"
@@ -184,14 +184,15 @@ module "catalogue" {
   }
 }
 
-module "definitions" {
-  source      = "../../../modules/definitions"
+module "native_content" {
+  source      = "../../../modules/content"
   definitions = module.catalogue.definitions
 }
 
 # File-sourced pipeline: the catalogue-to-initiatives fixtures use provider-
 # representable member version intent (major.minor.*), which the module
-# fixtures above do not, so they feed initiatives and the resolver separately.
+# fixtures above do not, so they feed their own content instance and the
+# resolver.
 module "pipeline_catalogue" {
   source = "../../../modules/catalogue"
 
@@ -199,21 +200,16 @@ module "pipeline_catalogue" {
   initiative_directory         = "./fixtures/initiatives"
 }
 
-module "pipeline_definitions" {
-  source      = "../../../modules/definitions"
+module "content" {
+  source      = "../../../modules/content"
   definitions = module.pipeline_catalogue.definitions
-}
-
-module "initiatives" {
-  source      = "../../../modules/initiatives"
   initiatives = module.pipeline_catalogue.initiatives
-  definitions = module.pipeline_definitions.definitions
 }
 
 module "behaviour_resolution" {
   source      = "../../../modules/behaviour-resolution"
-  definitions = module.pipeline_definitions.definitions
-  initiatives = module.initiatives.initiatives
+  definitions = module.content.definitions
+  initiatives = module.content.initiatives
 
   assignments = {
     reviewed_baseline = {
@@ -238,7 +234,7 @@ module "behaviour_resolution" {
 }
 
 output "definitions" {
-  value = module.definitions.definitions
+  value = module.native_content.definitions
 }
 
 output "initiatives" {
@@ -246,11 +242,11 @@ output "initiatives" {
 }
 
 output "pipeline_definitions" {
-  value = module.pipeline_definitions.definitions
+  value = module.content.definitions
 }
 
 output "pipeline_initiatives" {
-  value = module.initiatives.initiatives
+  value = module.content.initiatives
 }
 
 output "resolved_assignments" {

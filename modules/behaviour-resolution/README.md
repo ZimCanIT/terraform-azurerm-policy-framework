@@ -8,8 +8,8 @@
 
 | Input | Type | Behaviour |
 | --- | --- | --- |
-| `definitions` | `any` | Actual `modules/definitions` resource outputs keyed by stable catalogue key, including IDs, capabilities, effects, parameters, versions and role candidates. |
-| `initiatives` | `any` | Actual `modules/initiatives` resource outputs keyed by stable catalogue key, including `id`, `created_by_module`, the initiative set `parameter_schema`, and the complete list of resolved member references with their own schemas, mappings, version intent, capabilities, role candidates and governance. |
+| `definitions` | `any` | The `definitions` output of `modules/content`: actual resource outputs keyed by stable catalogue key, including IDs, capabilities, effects, parameters, versions and role candidates. |
+| `initiatives` | `any` | The `initiatives` output of `modules/content`: actual resource outputs keyed by stable catalogue key, including `id`, `created_by_module`, the initiative set `parameter_schema`, and the complete list of resolved member references with their own schemas, mappings, version intent, capabilities, role candidates and governance. |
 | `assignments` | `any` | Assignment intent keyed by stable assignment key. Exactly one of `definition_key`, `initiative_key` or `policy_definition_id` is required. `role_grant_scopes` is an optional map of role definition ID to an explicit grant scope that differs from the assignment scope. Caller-supplied `resolved` decisions are rejected. |
 
 ### Outputs
@@ -41,8 +41,8 @@ The output uses the shared nested `intent`, `resolved` and `assignment` record. 
 module "behaviour_resolution" {
   source = "./modules/behaviour-resolution"
 
-  definitions = module.definitions.definitions
-  initiatives = module.initiatives.initiatives
+  definitions = module.content.definitions
+  initiatives = module.content.initiatives
   assignments = {
     platform_baseline = {
       target = {

@@ -6,8 +6,10 @@ run "accepts_strict_typed_literals_and_array_element_allowlist" {
   variables {
     definitions = {
       typed = {
-        source_type = "built_in"
-        id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
+        source_type          = "built_in"
+        display_name         = "Typed"
+        policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        version_constraint   = "1.0.*"
         parameters = {
           text    = { type = "String", defaultValue = "ready" }
           list    = { type = "Array", allowedValues = ["eastus", "westus"], defaultValue = ["eastus"] }
@@ -49,8 +51,10 @@ run "accepts_compatible_typed_parameter_bindings" {
   command = plan
   variables {
     definitions = { typed = {
-      source_type = "built_in"
-      id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
+      source_type          = "built_in"
+      display_name         = "Typed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      version_constraint   = "1.0.*"
       parameters = {
         text    = { type = "String" }
         list    = { type = "Array", allowedValues = ["eastus", "westus"] }
@@ -97,9 +101,11 @@ run "rejects_fractional_integer_literal" {
   command = plan
   variables {
     definitions = { typed = {
-      source_type = "built_in"
-      id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
-      parameters  = { count = { type = "Integer" } }
+      source_type          = "built_in"
+      display_name         = "Typed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      version_constraint   = "1.0.*"
+      parameters           = { count = { type = "Integer" } }
     } }
     initiatives = { typed = {
       display_name = "Typed"
@@ -117,9 +123,11 @@ run "rejects_missing_required_member_mapping" {
   command = plan
   variables {
     definitions = { typed = {
-      source_type = "built_in"
-      id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
-      parameters  = { required = { type = "String" } }
+      source_type          = "built_in"
+      display_name         = "Typed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      version_constraint   = "1.0.*"
+      parameters           = { required = { type = "String" } }
     } }
     initiatives = { typed = {
       display_name                 = "Typed"
@@ -133,9 +141,11 @@ run "rejects_unknown_member_mapping_key" {
   command = plan
   variables {
     definitions = { typed = {
-      source_type = "built_in"
-      id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
-      parameters  = { known = { type = "String", defaultValue = "x" } }
+      source_type          = "built_in"
+      display_name         = "Typed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      version_constraint   = "1.0.*"
+      parameters           = { known = { type = "String", defaultValue = "x" } }
     } }
     initiatives = { typed = {
       display_name = "Typed"
@@ -153,9 +163,11 @@ run "rejects_undefined_parameter_binding" {
   command = plan
   variables {
     definitions = { typed = {
-      source_type = "built_in"
-      id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
-      parameters  = { text = { type = "String" }, count = { type = "Integer" } }
+      source_type          = "built_in"
+      display_name         = "Typed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      version_constraint   = "1.0.*"
+      parameters           = { text = { type = "String" }, count = { type = "Integer" } }
     } }
     initiatives = { typed = {
       display_name = "Typed"
@@ -177,9 +189,11 @@ run "rejects_mismatched_parameter_binding" {
   command = plan
   variables {
     definitions = { typed = {
-      source_type = "built_in"
-      id          = "/providers/Microsoft.Authorization/policyDefinitions/typed"
-      parameters  = { text = { type = "String" } }
+      source_type          = "built_in"
+      display_name         = "Typed"
+      policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      version_constraint   = "1.0.*"
+      parameters           = { text = { type = "String" } }
     } }
     initiatives = { typed = {
       display_name = "Typed"
