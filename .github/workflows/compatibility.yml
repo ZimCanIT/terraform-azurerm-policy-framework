@@ -1,0 +1,129 @@
+# Declared-range compatibility evidence from scripts/tf-inventory.json: the
+# lower cell (minimum Terraform with minimum AzureRM) and the upper cell (normal
+# Terraform with normal AzureRM). The provider is pinned per root with a
+# throwaway *_override.tf file, so versions.tf is never rewritten. Provider-free
+# roots run on both Terraform versions without AzureRM. No Azure credentials.
+name: compatibility
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Read the shared root and version inventory
+    runs-on: ubuntu-latest
+    outputs:
+      cells: ${{ steps.inventory.outputs.cells }}
+      terraform_versions: ${{ steps.inventory.outputs.terraform_versions }}
+      provider_backed_roots: ${{ steps.inventory.outputs.provider_backed_roots }}
+      provider_backed_test_roots: ${{ steps.inventory.outputs.provider_backed_test_roots }}
+      provider_free_roots: ${{ steps.inventory.outputs.provider_free_roots }}
+      provider_free_test_roots: ${{ steps.inventory.outputs.provider_free_test_roots }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: inventory
+        shell: bash
+        run: |
+          inv=scripts/tf-inventory.json
+          echo "cells=$(jq -c '{include: [{terraform: .versions.terraform_min, azurerm: .versions.azurerm_min}, {terraform: .versions.terraform_normal, azurerm: .versions.azurerm_normal}] | unique}' "$inv")" >> "$GITHUB_OUTPUT"
+          echo "terraform_versions=$(jq -c '[.versions.terraform_min, .versions.terraform_normal] | unique' "$inv")" >> "$GITHUB_OUTPUT"
+          for group in provider_backed_roots provider_backed_test_roots provider_free_roots provider_free_test_roots; do
+            echo "$group=$(jq -c ".groups.$group" "$inv")" >> "$GITHUB_OUTPUT"
+          done
+
+  provider-backed:
+    name: Terraform ${{ matrix.terraform }} with AzureRM ${{ matrix.azurerm }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.cells) }}
+    env:
+      ROOTS: ${{ needs.prepare.outputs.provider_backed_roots }}
+      TEST_ROOTS: ${{ needs.prepare.outputs.provider_backed_test_roots }}
+      PINNED_AZURERM: ${{ matrix.azurerm }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ matrix.terraform }}
+          terraform_wrapper: false
+      - name: Verify the selected Terraform version
+        shell: bash
+        env:
+          EXPECTED_TERRAFORM: ${{ matrix.terraform }}
+        run: |
+          terraform version -json | jq -e --arg expected "$EXPECTED_TERRAFORM" '.terraform_version == $expected' >/dev/null || {
+            echo "::error::selected Terraform version differs from ${EXPECTED_TERRAFORM}"
+            exit 1
+          }
+      - name: Pin AzureRM ${{ matrix.azurerm }} with an override file in each provider-backed root
+        shell: bash
+        run: |
+          for root in $(jq -r 'join(" ")' <<< "$ROOTS"); do
+            cat > "$root/compatibility_override.tf" <<EOF
+          terraform {
+            required_providers {
+              azurerm = {
+                source  = "hashicorp/azurerm"
+                version = "= ${PINNED_AZURERM}"
+              }
+            }
+          }
+          EOF
+          done
+      - name: Initialise, verify the selected provider and validate every provider-backed root
+        shell: bash
+        run: |
+          for root in $(jq -r 'join(" ")' <<< "$ROOTS"); do
+            terraform -chdir="$root" init -backend=false -input=false -no-color
+            terraform -chdir="$root" version -json | jq -e --arg expected "$PINNED_AZURERM" '.provider_selections["registry.terraform.io/hashicorp/azurerm"] == $expected' >/dev/null || {
+              echo "::error::root $root selected an AzureRM version other than ${PINNED_AZURERM}"
+              exit 1
+            }
+            terraform -chdir="$root" validate -no-color
+          done
+      - name: Run every provider-backed suite
+        shell: bash
+        run: |
+          for root in $(jq -r 'join(" ")' <<< "$TEST_ROOTS"); do
+            terraform -chdir="$root" test -no-color || {
+              echo "::error::tests failed for $root with Terraform ${{ matrix.terraform }} and AzureRM ${PINNED_AZURERM}"
+              exit 1
+            }
+          done
+
+  provider-free:
+    name: Terraform ${{ matrix.terraform }} provider-free roots and suites
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        terraform: ${{ fromJson(needs.prepare.outputs.terraform_versions) }}
+    env:
+      ROOTS: ${{ needs.prepare.outputs.provider_free_roots }}
+      TEST_ROOTS: ${{ needs.prepare.outputs.provider_free_test_roots }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ matrix.terraform }}
+          terraform_wrapper: false
+      - name: Initialise and validate provider-free roots, then run their suites
+        shell: bash
+        run: |
+          for root in $(jq -r 'join(" ")' <<< "$ROOTS"); do
+            terraform -chdir="$root" init -backend=false -input=false -no-color
+            terraform -chdir="$root" validate -no-color
+          done
+          for root in $(jq -r 'join(" ")' <<< "$TEST_ROOTS"); do
+            terraform -chdir="$root" test -no-color || {
+              echo "::error::provider-free tests failed for $root with Terraform ${{ matrix.terraform }}"
+              exit 1
+            }
+          done

@@ -1,0 +1,84 @@
+# Pull-request gate for main. Every root listed in scripts/tf-inventory.json
+# is formatted, initialised without a backend, validated and tested with the
+# normal Terraform version. The workflow configures no Azure credentials and
+# never applies or destroys infrastructure: live runs are separate and opt-in.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Read the shared root inventory
+    runs-on: ubuntu-latest
+    outputs:
+      validate_roots: ${{ steps.inventory.outputs.validate_roots }}
+      test_roots: ${{ steps.inventory.outputs.test_roots }}
+      terraform_version: ${{ steps.inventory.outputs.terraform_version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: inventory
+        shell: bash
+        run: |
+          echo "validate_roots=$(jq -c '{root: .groups.validate_roots}' scripts/tf-inventory.json)" >> "$GITHUB_OUTPUT"
+          echo "test_roots=$(jq -c '{root: .groups.test_roots}' scripts/tf-inventory.json)" >> "$GITHUB_OUTPUT"
+          echo "terraform_version=$(jq -r '.versions.terraform_normal' scripts/tf-inventory.json)" >> "$GITHUB_OUTPUT"
+
+  format:
+    name: Terraform formatting
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ needs.prepare.outputs.terraform_version }}
+      - run: terraform fmt -check -diff -recursive .
+
+  validate:
+    name: Validate (${{ matrix.root }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.validate_roots) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ needs.prepare.outputs.terraform_version }}
+      - run: terraform -chdir="${{ matrix.root }}" init -backend=false -input=false -no-color
+      - run: terraform -chdir="${{ matrix.root }}" validate -no-color
+
+  test:
+    name: Test (${{ matrix.root }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.test_roots) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ needs.prepare.outputs.terraform_version }}
+      - run: terraform -chdir="${{ matrix.root }}" init -backend=false -input=false -no-color
+      - run: terraform -chdir="${{ matrix.root }}" test -no-color
+
+  gates:
+    name: Documentation and repository gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check public documentation, links and the package inventory
+        run: python scripts/repository_gate.py
+      - name: Check whitespace
+        run: git diff --check
