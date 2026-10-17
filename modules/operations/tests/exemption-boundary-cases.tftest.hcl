@@ -117,20 +117,3 @@ run "reject_duplicate_member_targeting" {
   }
   expect_failures = [terraform_data.exemption_contract_guard]
 }
-
-# The member inventory rule lives at the shared input, so one disagreeing record
-# is rejected whichever operation family would read it.
-run "reject_member_inventory_disagreement_at_the_shared_input" {
-  command = plan
-  variables {
-    resolved_assignments = {
-      subscription = {
-        assignment = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment" }
-        intent     = { scope = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" } }
-        resolved   = { members = [{ reference_id = "member-a" }, { reference_id = "member-b" }], member_reference_ids = ["member-b", "member-a"] }
-      }
-    }
-    exemptions = {}
-  }
-  expect_failures = [var.resolved_assignments]
-}

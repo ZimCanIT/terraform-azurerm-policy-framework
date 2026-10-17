@@ -16,7 +16,7 @@ Remediations and exemptions share a module because they share an owner, an appro
 
 ### Resolved assignments
 
-Each record provides `assignment.id`, `intent.scope.type` and `intent.scope.id`. Remediation requests also read `resolved.policy_definition_id`, `resolved.remediation_eligibility`, `resolved.remediation_reason`, `resolved.required_roles` and, for initiative targets, per-member decisions. Both families read `resolved.members` and `resolved.member_reference_ids`, which describe the complete initiative membership in the same order. `[]` means verified absence and null means unknown. The module rejects a record whose two member collections disagree, whichever family reads it. A blank `remediation_eligibility` is an unknown decision, never a declared state.
+Each record provides `assignment.id`, `intent.scope.type` and `intent.scope.id`. Remediation requests also read `resolved.policy_definition_id`, `resolved.remediation_eligibility`, `resolved.remediation_reason`, `resolved.required_roles` and, for initiative targets, per-member decisions. Both families read `resolved.members` and `resolved.member_reference_ids`, which describe the complete initiative membership in the same order. `[]` means verified absence and null means unknown. The module rejects a record whose two member collections disagree, whichever family reads it, and rejects two records that share one assignment ID, because exemptions find their assignment by ID. A blank `remediation_eligibility` is an unknown decision, never a declared state.
 
 ```hcl
 resolved_assignments = {

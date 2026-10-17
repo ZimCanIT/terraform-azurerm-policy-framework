@@ -53,6 +53,18 @@ variable "resolved_assignments" {
     ]), false)
     error_message = "Each resolved members value must be an ordered list of uniquely identified records matching member_reference_ids when both are known."
   }
+
+  # Exemption requests find their assignment by ID, so two keys must not share
+  # one. Blank or absent IDs are left to the checks that consume them, and an ID
+  # that is unknown until apply makes the condition unknown, which defers it.
+  validation {
+    condition = try(
+      length(distinct([for _, assignment in var.resolved_assignments : trimspace(assignment.assignment.id) if try(trimspace(assignment.assignment.id), "") != ""])) ==
+      length([for _, assignment in var.resolved_assignments : trimspace(assignment.assignment.id) if try(trimspace(assignment.assignment.id), "") != ""]),
+      true
+    )
+    error_message = "Each resolved assignment ID must be unique across assignment keys."
+  }
 }
 
 variable "discovery_evidence" {
