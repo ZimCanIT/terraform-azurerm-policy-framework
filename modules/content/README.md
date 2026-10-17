@@ -12,7 +12,8 @@ Catalogue-fed wiring, the shape used by the composite root:
 module "catalogue" {
   source = "./modules/catalogue"
 
-  built_in_reference_directory = "${path.root}/catalogue/built-in"
+  custom_definition_directory  = "${path.root}/catalogue/custom-definitions"
+  built_in_reference_directory = "${path.root}/catalogue/built-in-references"
   initiative_directory         = "${path.root}/catalogue/initiatives"
 }
 
@@ -33,10 +34,10 @@ module "content" {
     allowed_locations = {
       source_type          = "built_in"
       policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c"
-      display_name        = "Allowed locations"
-      mode                = "Indexed"
-      supported_effects   = ["Audit", "Deny", "Disabled"]
-      version_constraint  = "1.*.*"
+      display_name         = "Allowed locations"
+      mode                 = "Indexed"
+      supported_effects    = ["Audit", "Deny", "Disabled"]
+      version_constraint   = "1.*.*"
     }
 
     require_cost_centre_tag = {
@@ -79,30 +80,30 @@ module "content" {
 
 ## Contract
 
-| Input | Type | Behaviour |
-| --- | --- | --- |
-| `definitions` | `any` | Canonical definition objects keyed by stable catalogue key. Custom entries are created; built-in entries are passed through by stable Azure ID. Keyed initiative members resolve their `definition_key` against this map. |
-| `initiatives` | `any` | Canonical initiative objects keyed by stable catalogue key. Each entry may carry `catalogue_key`, `name`, `display_name`, `description`, `metadata`, `parameters`, `policy_definition_references`, `policy_definition_groups`, `management_group_id`, `governance` and `version`. |
+| Input | Type | Default | Behaviour |
+| --- | --- | --- | --- |
+| `definitions` | `any` | `{}` | Canonical definition objects keyed by stable catalogue key. Custom entries are created; built-in entries are passed through by stable Azure ID. Keyed initiative members resolve their `definition_key` against this map. |
+| `initiatives` | `any` | `{}` | Canonical initiative objects keyed by stable catalogue key. Each entry may carry `catalogue_key`, `name`, `display_name`, `description`, `metadata`, `parameters`, `policy_definition_references`, `policy_definition_groups`, `management_group_id`, `governance` and `version`. |
 
-Both inputs default to `{}`. Each has its own container validation, so a null or scalar value for either fails at the variable boundary with a message that names the input.
+Each input has its own container validation, so a null, list or scalar value for either fails at the variable boundary with a message that names the input. `definitions` is validated at the variable boundary for every rule in the envelope table below. `initiatives` is validated there for its container, entries and top-level field allowlist, and by the ingestion guard described under Composition and validation for the rest.
 
 ### Definitions
 
 Each input key is the stable catalogue key. Custom definitions default their Azure name to that key when `name` is omitted. Built-in definitions must provide a stable Azure `policy_definition_id`.
 
-Custom definitions are created with `azurerm_policy_definition`. If `management_group_id` is omitted, AzureRM creates the definition at subscription scope using the provider context. Built-in definitions are not looked up by this module, which keeps local validation and planning independent of Azure reads.
+Custom definitions are created with `azurerm_policy_definition`. If `management_group_id` is omitted, AzureRM creates the definition at subscription scope using the provider context. Two custom definitions with the same effective name in the same scope, compared case-insensitively, fail a precondition on the created definition. Built-in definitions are not looked up by this module, which keeps local validation and planning independent of Azure reads.
 
 The `definitions` output is the hand-off to behaviour resolution and the source of the definition IDs that keyed initiative members resolve against inside this module. It includes source type, ID, display metadata, mode, metadata, parameters, policy rule when supplied, role definition IDs, supported effects and version strategy.
 
 Initiative composition happens in this module from the same `definitions` input: member references, parameter mappings, groups, version choices and collision rules are resolved against the definitions created or referenced here (see Initiatives).
 
-Built-in definitions must declare either `version_constraint` or `pinned_version`. Azure built-in assignment versioning is enforced later by the assignment and behaviour-resolution modules, but the definitions contract records the intended version behaviour early so reviews can detect drift. Custom definitions must declare an exact `version` or `metadata.version`; the module synchronises it into metadata.
+Built-in definitions must declare exactly one of `version_constraint` or `pinned_version`. Azure built-in assignment versioning is enforced later by the assignment and behaviour-resolution modules, but the definitions contract records the intended version behaviour early so reviews can detect drift. Custom definitions must declare an exact `version` or `metadata.version`; the module synchronises it into metadata.
 
 For Terraform module version pinning, consumers should pin the final published package address at the call site once the Registry namespace and package name are established. A release pin is separate from Azure Policy built-in version selection, which is represented by `version_constraint` or `pinned_version` in each built-in catalogue entry.
 
 ### Initiatives
 
-Each initiative member accepts `reference_id`, one of `definition_key` or `policy_definition_id`, optional `parameter_values`, optional `group_names`, optional `effect` and boolean `required` metadata, and optional `version_constraint` or `pinned_version`. Keyed members resolve through `definitions`; direct IDs pass through unchanged. Member IDs must be valid Azure Policy definition resource IDs, keyed definitions must be scope-compatible, and reference IDs and group names are unique case-insensitively. Direct members require exactly one version selector; keyed members may inherit the canonical definition intent, where the inherited version recorded in outputs is the referenced definition's `version_constraint`, while a definition carrying only an exact pin or a content version records no inherited version; conflicting supplied intent is rejected. AzureRM 5.5.0 accepts only `major.minor.*` member constraints at this boundary. Exact pins are preserved in the canonical output and rejected before resource creation because the provider schema cannot represent them without widening caller intent.
+Each initiative member accepts `reference_id`, one of `definition_key` or `policy_definition_id`, optional `parameter_values`, optional `group_names`, optional `effect` and boolean `required` metadata, and optional `version_constraint` or `pinned_version`. Keyed members resolve through `definitions`; direct IDs pass through unchanged. A direct ID must be a built-in, subscription-scoped custom or management-group-scoped custom policy definition ID. A direct subscription ID is rejected in a management-group initiative and a direct management-group ID in a subscription initiative. A keyed definition that carries a `management_group_id` must name the initiative's management group, and a keyed definition without one, such as a subscription-scoped custom or a built-in definition, is accepted at either scope. Reference IDs and group names are unique case-insensitively. Direct members require exactly one version selector; keyed members may inherit the canonical definition intent, where the inherited version recorded in outputs is the referenced definition's `version_constraint`, while a definition carrying only an exact pin or a content version records no inherited version; conflicting supplied intent is rejected. A member version reaches AzureRM only in `major.minor.*` form. A `major.*.*` constraint or an exact pin on a member, supplied or inherited from the definition, is preserved in the canonical output and rejected before resource creation, because the provider schema cannot represent it without widening caller intent. A built-in definition that declares `major.*.*` or an exact pin therefore cannot be a keyed initiative member.
 
 ## Input and migration reference
 
@@ -113,24 +114,24 @@ This README is the shared reference for the envelope. Downstream modules should 
 | Field | Default | Applies to | Notes |
 | --- | --- | --- | --- |
 | `source_type` | required | both | `custom` or `built_in` |
-| `display_name` | required | both | 1-128 characters |
-| `name` | catalogue key | both | Custom Azure name |
-| `policy_definition_id` | null | built-in | Valid policy-definition resource ID |
+| `display_name` | required | both | Non-blank string of at most 128 characters |
+| `name` | catalogue key (custom), GUID of `policy_definition_id` (built-in) | both | Custom: the Azure name, 1 to 64 characters, without `<`, `>`, `%`, `&`, `:`, `?` or `/` and not ending in a space. Built-in: an optional label that is never sent to Azure |
+| `policy_definition_id` | required (built-in), rejected (custom) | built-in | `/providers/Microsoft.Authorization/policyDefinitions/<GUID>` |
 | `description` | `""` | both | Maximum 512 characters |
-| `mode` | `All` (custom), null (built-in) | both | Custom modes are validated and default to `All` because the created resource carries that value; a built-in mode should be supplied for accuracy, and an omitted or null built-in mode stays null (unknown) because this module does not look it up in Azure |
+| `mode` | `All` (custom), null (built-in) | both | Custom modes are `All`, `Indexed`, `Microsoft.Kubernetes.Data`, `Microsoft.KeyVault.Data` and `Microsoft.Network.Data`, and default to `All` because the created resource carries that value. A built-in mode should be supplied for accuracy, and an omitted or null built-in mode stays null (unknown) because this module does not look it up in Azure |
 | `metadata` | `{}` | both | Preserved as native policy objects |
 | `parameters` | `{}` (custom), null (built-in) | both | Preserved as native policy objects; an omitted or null built-in parameters object stays null (unknown) and an explicit `{}` stays a verified absence |
-| `policy_rule` | null | custom | Required for custom definitions |
-| `management_group_id` | null | custom | Provider subscription scope when omitted; a consumer-root deployment binding, never portable policy content |
-| `role_definition_ids` | `[]` (custom), null (built-in) | both | Candidate roles, not grants or assignment decisions; custom absence becomes `[]` because the created resource carries it, while an omitted or null built-in list stays null (unknown) and an explicit `[]` stays a verified absence |
+| `policy_rule` | null | custom | An object, required for custom definitions and rejected for built-in ones |
+| `management_group_id` | null | custom | `/providers/Microsoft.Management/managementGroups/<id>`. Provider subscription scope when omitted or blank, and rejected for built-in definitions. A consumer-root deployment binding, never portable policy content |
+| `role_definition_ids` | `[]` (custom), null (built-in) | both | Candidate roles, not grants or assignment decisions; custom absence becomes `[]` because the created resource carries it, while an omitted or null built-in list stays null (unknown) and an explicit `[]` stays a verified absence. For custom entries the output list also includes `policy_rule.then.details.roleDefinitionIds`, deduplicated |
 | `supported_effects` | null (unknown) | both | Catalogue capability data, not an assignment decision; absent stays null, explicit `[]` means verified absence |
 | `supported_overrides` | null | both | List of override declaration objects, preserved verbatim for behaviour resolution |
 | `selectors` | null | both | List of selector declaration objects, preserved verbatim for assignment and behaviour resolution |
 | `non_compliance_messages` | null | both | Object of message declarations, preserved verbatim for assignment review tooling |
 | `capabilities` | null | both | Object of capability declarations, preserved verbatim for behaviour resolution |
 | `governance` | null | both | Object of ownership and traceability declarations, owned by the governance area |
-| `version` | required via `version` or `metadata.version` | custom | Exact content version, synchronised into metadata |
-| `version_constraint` / `pinned_version` | null | built-in | Mutually exclusive version intent |
+| `version` | required via `version` or `metadata.version` | custom | Exact content version, synchronised into metadata; rejected for built-in definitions |
+| `version_constraint` / `pinned_version` | null | built-in | Exactly one is required; both are rejected for custom definitions |
 
 For built-in entries, `mode`, `parameters` and `role_definition_ids` follow
 the same unknown-state rule as the capability declarations: absent or null
@@ -169,9 +170,10 @@ For a keyed definition, every required member parameter without a `defaultValue`
 
 Both initiative resources explicitly depend on the blocking
 `terraform_data.initiative_ingestion_contract`, so a supported targeted resource
-operation also evaluates the guard. A targeted failure against an existing
-managed initiative is still required to demonstrate that malformed input
-cannot trigger a destructive change.
+operation also evaluates the guard. The guard is a single resource without an
+index. The module suite plans a targeted operation against an existing managed
+initiative with malformed members, expects the guard to fail it and checks that
+the initiative keeps its identity.
 
 ## Outputs
 
@@ -186,20 +188,20 @@ cannot trigger a destructive change.
 
 ## Behaviour
 
-The module uses `azurerm_policy_definition` for custom definitions, `azurerm_policy_set_definition` for subscription-scoped initiatives and `azurerm_management_group_policy_set_definition` when an entry supplies `management_group_id`. Names default to the stable catalogue key when `name` is omitted. Definition scope must be compatible with initiative scope; direct subscription IDs are rejected for management-group initiatives and management-group IDs are rejected for subscription initiatives. Groups are mapped to Azure policy definition groups, and member group names are validated against the groups declared on the same initiative. An initiative version is catalogue metadata and is preserved for review; Azure resource versioning is carried by each member `version` argument.
+The module uses `azurerm_policy_definition` for custom definitions, `azurerm_policy_set_definition` for subscription-scoped initiatives and `azurerm_management_group_policy_set_definition` when an entry supplies `management_group_id`. Names default to the stable catalogue key when `name` is omitted. Two initiatives with the same effective name in the same scope, compared case-insensitively, fail the guard. Scope compatibility between an initiative and its member definitions follows the rules under Initiatives. Groups are mapped to Azure policy definition groups, and member group names are validated against the groups declared on the same initiative. An initiative version is catalogue metadata and is preserved for review; Azure resource versioning is carried by each member `version` argument.
 
 ## Replacing the former modules
 
-This module replaces `modules/definitions` and `modules/initiatives`, which are removed in the same change. The repository has no published release, so no alias module is provided. Output shapes are unchanged. Resource addresses move into this module:
+This module replaces the former `modules/definitions` and `modules/initiatives` modules, which no longer exist. The repository has no published release, so no alias module is provided. Output shapes are unchanged. Resource addresses move into this module:
 
 | Former address | Address in this module |
 | --- | --- |
 | `module.<definitions>.azurerm_policy_definition.this[key]` | `module.<content>.azurerm_policy_definition.this[key]` |
 | `module.<initiatives>.azurerm_policy_set_definition.subscription[key]` | `module.<content>.azurerm_policy_set_definition.subscription[key]` |
 | `module.<initiatives>.azurerm_management_group_policy_set_definition.management_group[key]` | `module.<content>.azurerm_management_group_policy_set_definition.management_group[key]` |
-| `module.<initiatives>.terraform_data.initiative_ingestion_contract[key]` | `module.<content>.terraform_data.initiative_ingestion_contract[key]` |
+| `module.<initiatives>.terraform_data.initiative_ingestion_contract` | `module.<content>.terraform_data.initiative_ingestion_contract` |
 
-A caller with existing state moves each resource with a `moved` block or `terraform state mv` and confirms with a reviewed plan that nothing is replaced. The initiative input no longer takes a `definitions` variable: remove the `definitions = module.<definitions>.definitions` argument from the former initiatives call and pass both maps to this module.
+A caller with existing state moves each resource with a `moved` block or `terraform state mv` and confirms with a reviewed plan that nothing is replaced. The former initiatives call took the created definitions output, `definitions = module.<definitions>.definitions`. This module reads created definition IDs itself, so pass it the same canonical `definitions` and `initiatives` maps that fed the two former modules.
 
 ## Azure permissions
 
@@ -216,11 +218,11 @@ This state needs no role assignment, identity, policy assignment, exemption or r
 
 ## Separation of duties
 
-Content changes what a control means and never where it applies. Apply it first, from the catalogue at one commit, with a principal that holds definition rights only. Assignments, role grants and operations consume the `definitions` and `initiatives` outputs and write no definitions. Because the package never reads remote state, the hand-off between states is explicit: pass the two envelopes through `terraform_remote_state` or a pipeline variable, and use the same catalogue commit in every state that recomputes resolution. A principal that can write definitions can change the effect of an existing assignment without touching it, so review definition changes before they are applied.
+Content changes what a control means and never where it applies. Apply it first, from the catalogue at one commit, with a principal that holds definition rights only. Role grants and assignments recompute resolution from the `definitions` and `initiatives` outputs, and operations consume the `resolved_assignments` output of the assignments state. None of them writes definitions. Because the package never reads remote state, the hand-off between states is explicit: pass the two envelopes through `terraform_remote_state` or a pipeline variable, and use the same catalogue commit in every state that recomputes resolution. A principal that can write definitions can change the effect of an existing assignment without touching it, so review definition changes before they are applied.
 
 ## Compatibility
 
-The module declares Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`. The repository's compatibility workflow runs the module suites on Terraform 1.12.0 with AzureRM 5.0.0 and on Terraform 1.15.9 with AzureRM 5.5.0, selecting each provider with a throwaway override file so `versions.tf` is never rewritten. AzureRM accepts member version constraints in `major.minor.*` form at this boundary. Exact pins are retained as intent but rejected before resource creation because the provider schema cannot represent them without widening caller intent. The module configures no provider or backend. Callers own provider aliases and credentials, and the local lock selection is validation evidence, not a consumer module pin.
+The module declares Terraform `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0`. The repository's compatibility workflow runs the module suites on Terraform 1.12.0 with AzureRM 5.0.0 and on Terraform 1.15.9 with AzureRM 5.5.0, selecting each provider with a throwaway override file so `versions.tf` is never rewritten. Member version constraints reach AzureRM in `major.minor.*` form only, as described under Initiatives. The module configures no provider or backend. Callers own provider aliases and credentials, and the local lock selection is validation evidence, not a consumer module pin.
 
 ## Validation and tests
 

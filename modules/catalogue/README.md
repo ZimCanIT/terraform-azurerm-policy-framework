@@ -15,8 +15,9 @@ and decode), `json.tf` (JSON companions and raw entries), `initiatives.tf`
 (initiative companions and normalisation), `initiatives-validation.tf`,
 `initiatives-references.tf` and `initiatives-groups.tf` (named validation
 rules), `diagnostics.tf` (attributable failure text), `guards.tf` (blocking
-preconditions) and `definitions.tf` (the shared definition model and canonical
-projection).
+preconditions), `definitions.tf` (the shared definition model and canonical
+projection), `integration.tf` (the native and JSON definition merge) and
+`outputs.tf` (public outputs, provenance and key-collision checks).
 
 ## Source-envelope contract
 
@@ -40,6 +41,12 @@ fields are `name`, `description`, `metadata`, `parameters`,
 `policy_definition_groups`, `management_group_id`, `governance` and `version`
 (an exact `major.minor.patch` when supplied).
 
+A custom definition must not carry `policy_definition_id`, `version_constraint`
+or `pinned_version`, and a built-in reference must not carry `policy_rule`,
+`management_group_id` or `version`. A JSON envelope may use only the documented
+fields of its directory's source type and no `source_type` field, so a failure
+names the file.
+
 Each initiative member (`policy_definition_references`) accepts these fields:
 
 | Field | Required | Rules |
@@ -52,18 +59,23 @@ Each initiative member (`policy_definition_references`) accepts these fields:
 | `version_constraint` | No | `major.*.*` or `major.minor.*`; mutually exclusive with `pinned_version`. |
 | `pinned_version` | No | Exact `major.minor.patch`; mutually exclusive with `version_constraint`. |
 
+A member field outside this table is rejected. `modules/content` additionally
+accepts `effect` and `required` on members supplied to it directly, but
+catalogue does not carry them.
+
 Each initiative group (`policy_definition_groups`) accepts `name` and
 `display_name` (both required non-blank; `name` unique case-insensitively within
 the initiative) plus optional `description` (string) and `metadata` (object).
 
 Key and source-type conventions differ by authoring format. JSON envelopes
-require an inline `catalogue_key` and the adapter sets `source_type` from the
-source directory or envelope. Native HCL values use the outer map key as the
-stable catalogue key, must not supply an inline `catalogue_key`, and native
-definitions additionally require `source_type = "custom"` or `"built_in"` with
-the corresponding required fields. Definition keys must be unique
-case-insensitively across all definition sources, and initiative keys likewise
-across all initiative sources.
+require an inline `catalogue_key`, and the adapter sets `source_type` from the
+source directory: a JSON envelope that carries `source_type` is rejected. Native
+HCL values use the outer map key as the stable catalogue key, must not supply an
+inline `catalogue_key`, and native definitions additionally require
+`source_type = "custom"` or `"built_in"` with the corresponding required
+fields. Every catalogue key must be a non-blank string without surrounding
+whitespace. Definition keys must be unique case-insensitively across all
+definition sources, and initiative keys likewise across all initiative sources.
 
 Capability and governance declarations are optional. `supported_effects` is a
 list of non-blank strings; `supported_overrides` and `selectors` are lists of
@@ -107,17 +119,23 @@ expression errors.
 
 ## Inputs
 
-| Input | Type | Behaviour |
-| --- | --- | --- |
-| `native_definitions` | `any` | Optional keyed object of definition-shaped HCL values. The key is the stable catalogue key. |
-| `native_initiatives` | `any` | Optional keyed object of initiative-shaped HCL values. The key is the stable initiative key. |
-| `custom_definition_directory` | `string` | Optional flat directory of custom-definition JSON envelopes and optional `<name>-parameters.json` companions. |
-| `built_in_reference_directory` | `string` | Optional flat directory of built-in-reference JSON envelopes. |
-| `initiative_directory` | `string` | Optional flat directory of initiative JSON envelopes and optional `<name>-parameters.json` companions. |
-| `allow_empty_sources` | `bool` | Defaults to `false`; permits an opted-in source directory to be missing or empty when explicitly set to `true`. |
+| Input | Type | Default | Behaviour |
+| --- | --- | --- | --- |
+| `native_definitions` | `any` | `{}` | Optional keyed object of definition-shaped HCL values. The key is the stable catalogue key. |
+| `native_initiatives` | `any` | `{}` | Optional keyed object of initiative-shaped HCL values. The key is the stable initiative key. |
+| `custom_definition_directory` | `string` | `null` | Optional flat directory of custom-definition JSON envelopes and optional `<name>-parameters.json` companions. |
+| `built_in_reference_directory` | `string` | `null` | Optional flat directory of built-in-reference JSON envelopes. |
+| `initiative_directory` | `string` | `null` | Optional flat directory of initiative JSON envelopes and optional `<name>-parameters.json` companions. |
+| `allow_empty_sources` | `bool` | `false` | Permits an opted-in source directory to be missing or empty when set to `true`. |
 
 The HCL variables use `any` at the source boundary so policy rules, parameter
-schemas and metadata retain heterogeneous Terraform values.
+schemas and metadata retain heterogeneous Terraform values. Their variable
+validation checks only the outer shape: a keyed object, non-blank keys, object
+values and the raw-field allowlist. The envelope rules above run in the
+ingestion guards at plan time, because a variable validation cannot read a
+local derived from the same variable. A directory input must be null or a
+non-blank path. A blank string fails variable validation, and a directory that
+is set but missing or empty fails the guards.
 
 ## Native HCL
 
@@ -194,7 +212,7 @@ envelope rules that apply to every JSON source directory.
 | --- | --- |
 | `definitions` | Canonical definition entries keyed by stable catalogue key, ready to pass directly to the `definitions` input of `modules/content`. |
 | `initiatives` | Canonical initiative envelopes keyed by stable catalogue key, ready to pass directly to the `initiatives` input of `modules/content`, which owns composition and resource creation. |
-| `source_summary` | Non-sensitive provenance with exactly one record per actual entry (`catalogue_key`, `source_type`, `authoring_format`, `source_path`, `companion_source_path`). Companions are attached to their parent record, never emitted separately. |
+| `source_summary` | Non-sensitive provenance, a list with exactly one record per actual entry (`catalogue_key`, `source_type`, `authoring_format`, `source_path`, `companion_source_path`). `source_type` is `custom`, `built_in` or `initiative`, `authoring_format` is `hcl` or `json`, and native entries have a null `source_path`. Companions are attached to their parent record, never emitted separately. |
 
 `definitions` excludes catalogue file paths and ingestion mechanics, so it can
 be passed directly to `modules/content`. `initiatives` preserves stable
@@ -222,9 +240,9 @@ terraform -chdir=modules/catalogue/examples/mixed validate -no-color
 ## Compatibility
 
 Catalogue requires Terraform `>= 1.12.0`; the source adapters rely on nullable
-validation guards and validation short-circuiting introduced in that release.
-Only Terraform 1.15.9 has been exercised locally, so the minimum is declared
-but untested at that version. `modules/content` declares Terraform
+validation guards and validation short-circuiting available from that release.
+The module is provider-free. The repository's compatibility workflow runs its
+suite on Terraform 1.12.0 and 1.15.9. `modules/content` declares Terraform
 `>= 1.12.0` and AzureRM `>= 5.0.0, < 6.0.0` independently.
 
 ## Tests
@@ -249,3 +267,4 @@ HCL/JSON parity, initiative member and group validation, provenance accuracy and
 bulk ingestion. `tests/contracts/catalogue-pipeline` wires catalogue into
 `modules/content` and `modules/behaviour-resolution`
 with a mocked AzureRM provider and asserts the hand-off envelopes end to end.
+The repository CI workflows run both suites.

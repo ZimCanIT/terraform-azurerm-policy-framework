@@ -12,7 +12,7 @@ module:
 
 The custom definition is created in the subscription selected by the AzureRM
 provider by default. To create it at management-group scope, supply the full
-management group resource ID:
+management group resource ID. Run these commands from this directory:
 
 ```powershell
 terraform init

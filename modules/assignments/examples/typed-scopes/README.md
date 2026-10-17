@@ -6,12 +6,14 @@ All identifiers are synthetic; no tenant or subscription data is embedded.
 
 ## Run
 
+From this directory:
+
 ```powershell
 terraform init -backend=false -input=false
 terraform validate -no-color
 ```
 
-`terraform plan` additionally requires caller-configured AzureRM credentials and creates nothing.
+`terraform plan` additionally requires caller-configured AzureRM credentials and creates nothing. The example outputs `assignments`, the canonical assignment records.
 
 ## Evidence limits
 
