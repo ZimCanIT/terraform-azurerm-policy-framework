@@ -1,15 +1,18 @@
 # Complete policy lifecycle example
 
-This example composes all eight child modules through the published root module: catalogue, definitions, initiatives, behaviour-resolution, assignments, identity-rbac, remediations and exemptions. It takes a portable policy catalogue from source fixture through to a governed assignment, an explicit remediation request and a time-bound exemption against a disposable Azure target.
+This example calls the root module, which wires the catalogue, content, behaviour-resolution, identity-rbac, assignments, operations and governance modules. It takes a portable policy catalogue from source fixture through to a governed assignment, an explicit remediation request and a time-bound exemption against a disposable Azure target.
+
+Every module runs in one state under one principal, so this example does not separate duties. [`examples/state-separated-lifecycle`](../state-separated-lifecycle/README.md) runs the same lifecycle as separate states.
 
 ## Content flow
 
 1. A portable catalogue fixture (custom definition, initiative and built-in reference) enters the catalogue source adapter.
 2. The content module turns the canonical envelopes into Azure Policy definitions and initiatives.
 3. The behaviour resolver derives the effective effect, version, identity requirement and remediation eligibility for the requested assignment.
-4. The assignments module creates the typed assignment; the identity-rbac module creates its user-assigned managed identity and least-privilege role grant.
-5. The remediations module issues an explicit, eligible remediation request against the disposable target and reports status.
-6. The exemptions module records the governed exemption with owner, reason, ticket, approver, compensating control and future expiry, tied to the assignment this example creates.
+4. The identity-rbac module creates the assignment's user-assigned managed identity and least-privilege role grant. The assignments module creates the typed assignment and attaches that identity.
+5. The operations module issues an explicit, eligible remediation request against the disposable target and reports status. The request omits `policy_assignment_id`, so the module takes it from the assignment the request names.
+6. The operations module records the governed exemption with owner, reason, ticket, approver, compensating control and future expiry, tied to the assignment this example creates.
+7. The governance module traces the example's requirement to its control and its assignment.
 
 The Modify definition adds the configured tag only when it is absent from a storage account. Existing tag values, including different or empty values, are preserved. Once remediation adds the tag, the resource no longer matches the rule's non-compliance condition.
 
@@ -35,16 +38,17 @@ No tenant identifiers, subscription IDs or credentials are checked in. The `envi
 
 ## Staged run sequence
 
-The example applies in stages: policy content first, then the assignment, identity and role grant layer, then the remediation and exemption operations. State boundaries, exact commands and hand-off outputs are documented in the [uat runbook](environments/uat/README.md).
+The example applies in stages: policy content first, then the identity, role grant and assignment layer, then the remediation and exemption operations. The staged applies all use one state. Exact commands and hand-off values are in the [uat runbook](environments/uat/README.md).
 
 ## Expected outputs
 
-The root outputs report:
+The example's `outputs.tf` reports:
 
-- `catalogue`, `definitions` and `initiatives` keyed by stable catalogue keys.
-- `resolved_assignments` with the effective effect, version and identity decision per assignment key.
+- `resolved_assignments` with the effective effect, version and identity decision per assignment key, including the created assignment ID.
 - `governance` requirements and traceability referencing assignments that exist in this configuration.
-- `remediations` and `exemptions` lifecycle views, `plan_summary` scope counts and `replacement_review` attributes.
+- `resolved_assignment_id` and `exemption_assignment_id`, the created `modify-tag-rg` assignment ID used for read-back and as the stage 2 exemption input.
+- `definition_ids` keyed by catalogue key and `set_definition_id`, the created definition and initiative IDs.
+- `remediation_and_exemption`, a compact review of the remediation request status and eligibility and of the exemption lifecycle.
 
 ## Cost and impact
 
@@ -52,4 +56,4 @@ The example creates one disposable resource group and one storage account as the
 
 ## Cleanup
 
-Run `terraform destroy` in the documented stage order from the uat runbook, then verify with Azure CLI or provider data that the resource group, storage account, identity, role assignment, remediation, exemption and policy resources are gone. A successful destroy command alone is not proof of absence.
+Run `terraform destroy` with the final stage's variable file, as the uat runbook describes, then verify with Azure CLI or provider data that the resource group, storage account, identity, role assignment, remediation, exemption and policy resources are gone. A successful destroy command alone is not proof of absence.

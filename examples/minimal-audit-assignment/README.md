@@ -1,6 +1,6 @@
 # Minimal audit assignment example
 
-The smallest real assignment through the published root module. It assigns one verified Azure built-in policy definition with the Audit effect at subscription scope. No custom definitions, initiatives, identities, role grants, remediations or exemptions are created.
+The smallest real assignment through the root module. It assigns one verified Azure built-in policy definition with the Audit effect at subscription scope. No custom definitions, initiatives, identities, role grants, remediations or exemptions are created.
 
 ## Verified built-in definition
 

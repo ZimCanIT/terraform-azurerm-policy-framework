@@ -49,7 +49,7 @@ locals {
   }
 
   # Governed exemption request for stage 2. assignment_id is the
-  # caller-supplied created assignment ID from stage 1, which the exemptions
+  # caller-supplied created assignment ID from stage 1, which the operations
   # module verifies against the resolved assignment inventory before creating
   # the resource-group-scoped exemption.
   exemption_requests = {
