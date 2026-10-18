@@ -26,7 +26,7 @@ module "resolution" {
   initiatives = {
     deploy_set = {
       id                = terraform_data.initiative_id.id
-      created_by_module = "modules/initiatives"
+      created_by_module = "modules/content"
       policy_definition_references = [{
         reference_id         = "deploy-member"
         definition_key       = "deploy"

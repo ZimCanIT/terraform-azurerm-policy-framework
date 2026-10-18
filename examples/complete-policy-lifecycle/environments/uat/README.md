@@ -46,7 +46,7 @@ Keep `uat.tfvars`, `terraform.tfstate*` and any plan files out of Git. The commi
 
 ## Stage 0: create the target resource group, definitions and initiative first
 
-The managed identity and the role grant are created inside the target resource group, but the identity and RBAC modules reference that group by name and cannot depend on the example's own `azurerm_resource_group` resource. Create the group with one targeted apply before the full apply so the later stages never race the group's creation:
+The managed identity and the role grant are created inside the target resource group, but the identity-rbac module references that group by name and cannot depend on the example's own `azurerm_resource_group` resource. Create the group with one targeted apply before the full apply so the later stages never race the group's creation:
 
 ```powershell
 terraform -chdir=examples/complete-policy-lifecycle init -backend=false -input=false
@@ -59,8 +59,8 @@ The role grant address is derived from the resolved required-role record, which 
 
 ```powershell
 terraform -chdir=examples/complete-policy-lifecycle apply -input=false `
-  -target=module.framework.module.definitions.azurerm_policy_definition.this `
-  -target=module.framework.module.initiatives.azurerm_policy_set_definition.subscription `
+  -target=module.framework.module.content.azurerm_policy_definition.this `
+  -target=module.framework.module.content.azurerm_policy_set_definition.subscription `
   -var-file=environments/uat/uat.tfvars
 ```
 
@@ -68,15 +68,15 @@ The storage account is not included in these steps: it already depends on the re
 
 ## Stage 1a: apply the assignment, identity, grant and storage account layer
 
-The remediation request's `for_each` address digests the created assignment's Azure ID, which is unknown while the assignment itself is being created, so the full apply fails on its first run. Apply the assignment, identity, role grant and storage account layer first; the remediation is created by the full apply in stage 1b once the assignment exists in state:
+Apply the assignment, identity, role grant and storage account layer first. The full apply in stage 1b then creates the remediation once the assignment exists in state:
 
 ```powershell
 terraform -chdir=examples/complete-policy-lifecycle apply -input=false `
   -target=azurerm_storage_account.target `
   -target=module.framework.module.assignments.azurerm_resource_group_policy_assignment.this `
   -target=module.framework.module.assignments.terraform_data.contract_guard `
-  -target=module.framework.module.identity-rbac.azurerm_user_assigned_identity.this `
-  -target=module.framework.module.identity-rbac.azurerm_role_assignment.this `
+  -target=module.framework.module.identity_rbac.azurerm_user_assigned_identity.this `
+  -target=module.framework.module.identity_rbac.azurerm_role_assignment.this `
   -var-file=environments/uat/uat.tfvars
 ```
 
@@ -202,4 +202,4 @@ Every query must return not found (the role assignment and exemption lists must 
 
 ## Optional harness
 
-`tests/integration/run-live.ps1` automates this runbook against the published example root, with bounded polling, a guaranteed cleanup handler and separate test and cleanup exit statuses. See `tests/integration/README.md` for usage, polling defaults and the cleanup-only resume command.
+`tests/integration/run-live.ps1` automates this runbook against the example root, with bounded polling, a guaranteed cleanup handler and separate test and cleanup exit statuses. See `tests/integration/README.md` for usage, polling defaults and the cleanup-only resume command.

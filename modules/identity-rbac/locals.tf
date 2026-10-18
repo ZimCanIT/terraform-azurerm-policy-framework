@@ -1,6 +1,23 @@
 locals {
-  # Shared grammar for the fail-closed grant preconditions; resource scopes must name a resource.
-  grant_scope_pattern     = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
+  # Grammar constants, written once for this module. Variable validations read
+  # them, so they must stay independent of every variable. Subscription IDs are
+  # GUIDs, as Azure issues them, and a resource scope names a provider, a type
+  # and a resource. The fail-closed grant preconditions reject a bare provider
+  # namespace or resource type.
+  scope_types = ["management_group", "subscription", "resource_group", "resource"]
+
+  scope_patterns = {
+    management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
+    subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
+    resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
+  }
+
+  # Any single grant scope, built from the map above so it cannot drift from the
+  # typed patterns.
+  grant_scope_pattern = join("|", [for type in local.scope_types : local.scope_patterns[type]])
+
+  # Tenant-level or subscription-level role definition resource ID.
   role_definition_pattern = "^/(subscriptions/[0-9a-fA-F-]{36}/)?providers/Microsoft\\.Authorization/roleDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 
   assignment_entries = {
@@ -16,7 +33,7 @@ locals {
       # Each required role is normalised once here; the two digests fix the grant
       # key and the role-assignment name so no sha1 is re-evaluated downstream.
       required_role_entries = [
-        for role in try(tolist(assignment.resolved.required_roles) == null ? [] : tolist(assignment.resolved.required_roles), []) : {
+        for role in try(tolist(assignment.resolved.required_roles), []) : {
           grant_scope        = try(trimspace(role.grant_scope), "")
           role_definition_id = try(trimspace(role.role_definition_id), "")
           purpose            = try(trimspace(role.purpose), "")
@@ -26,7 +43,7 @@ locals {
       ]
       # Candidate IDs normalise once per assignment instead of once per required role.
       candidate_roles = [
-        for candidate in try(tolist(assignment.resolved.list_fields.role_definition_ids) == null ? [] : tolist(assignment.resolved.list_fields.role_definition_ids), []) :
+        for candidate in try(tolist(assignment.resolved.list_fields.role_definition_ids), []) :
         lower(try(trimspace(candidate), ""))
       ]
       governance         = try(assignment.resolved.governance, try(assignment.intent.governance, null))
@@ -58,7 +75,7 @@ locals {
         grant_scope_valid     = can(regex(local.grant_scope_pattern, role.grant_scope))
         role_definition_valid = can(regex(local.role_definition_pattern, role.role_definition_id))
         # Broad roles are identified by terminal role GUID so subscription-prefixed IDs cannot bypass the exclusion.
-        # b24988ac-6180-42a0-ab88-20f7382dd24c is the real Contributor terminal GUID, confirmed against Azure RBAC.
+        # Owner (8e3af657-a8ff-443c-a75c-2fe8c4bcb635) and Contributor (b24988ac-6180-42a0-ab88-20f7382dd24c) are listed in the Microsoft Learn article Azure built-in roles; they are not checked against a live tenant.
         broad_role_excluded  = !contains(["8e3af657-a8ff-443c-a75c-2fe8c4bcb635", "b24988ac-6180-42a0-ab88-20f7382dd24c"], lower(try(regex("[^/]+$", role.role_definition_id), "")))
         purpose_supplied     = role.purpose != ""
         role_declared        = contains(assignment.candidate_roles, lower(role.role_definition_id))

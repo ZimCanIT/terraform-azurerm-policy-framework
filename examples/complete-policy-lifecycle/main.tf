@@ -1,7 +1,8 @@
-# Complete policy lifecycle example: all eight child modules composed through
-# the published root module.
+# Complete policy lifecycle example: the root module composes the catalogue,
+# content, behaviour-resolution, identity-rbac, assignments, operations and
+# governance modules in one state.
 #
-# Catalogue fixtures in content.tf flow through definitions and initiatives;
+# Catalogue fixtures in content.tf flow through the content module;
 # assignment.tf declares the Modify assignment intent; operations.tf declares
 # the explicit remediation request and the stage-sequenced governed exemption.
 # The environments/uat profile supplies real scope values in live runs.

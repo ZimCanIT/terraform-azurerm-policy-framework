@@ -107,12 +107,12 @@ module "catalogue" {
 }
 
 output "definitions" {
-  description = "Canonical definitions merging native HCL and JSON sources, for modules/definitions."
+  description = "Canonical definitions merging native HCL and JSON sources, for modules/content."
   value       = module.catalogue.definitions
 }
 
 output "initiatives" {
-  description = "Canonical initiative envelopes from both sources, for modules/initiatives."
+  description = "Canonical initiative envelopes from both sources, for modules/content."
   value       = module.catalogue.initiatives
 }
 

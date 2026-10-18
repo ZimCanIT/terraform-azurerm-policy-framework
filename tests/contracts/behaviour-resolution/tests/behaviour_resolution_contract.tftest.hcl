@@ -76,6 +76,15 @@ run "preserves_effect_and_version_states_through_contract" {
 
   assert {
     condition = (
+      output.remediations["test_remediation"].policy_assignment_id == "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/remediation_assignment" &&
+      !contains(output.remediations["test_remediation"].blocked_reasons, "assignment_id_unknown") &&
+      !contains(output.remediations["test_remediation"].blocked_reasons, "assignment_id_mismatch")
+    )
+    error_message = "A remediation request that omits policy_assignment_id must take the ID from the assignment lifecycle binding of its resolver record."
+  }
+
+  assert {
+    condition = (
       output.exemptions.approved["initiative_member_exemption"].approved == true &&
       tolist(output.exemptions.approved["initiative_member_exemption"].policy_definition_reference_ids) == tolist(["modify_member"]) &&
       output.exemptions.approved["initiative_member_exemption"].assignment_id == "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/initiative_locations"

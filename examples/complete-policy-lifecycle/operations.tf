@@ -18,16 +18,15 @@
 locals {
   # Explicit eligible remediation request for the modify-tag-rg assignment.
   #
-  # policy_assignment_id hand-off: the caller supplies only the deterministic
-  # placeholder below, which satisfies the remediations request contract. The
-  # root module "remediations" wiring replaces it with the created policy
-  # assignment ID that it resolves from assignment_key modify-tag-rg against
-  # the resolved assignment inventory, so the remediation always targets the
-  # assignment this example created. The caller never supplies a real
-  # assignment ID here.
+  # policy_assignment_id is omitted on purpose. The operations module takes it
+  # from the assignment that assignment_key names. The assignments module
+  # creates that assignment in this configuration, so the request always
+  # targets the assignment this example created and no ID is copied by hand.
+  # A value supplied here would have to equal that created ID, or the request
+  # is blocked.
   #
   # role_scope, approval_reference and policy_definition_reference_id are
-  # required by the remediations safety contract for an execute request:
+  # required by the operations safety contract for an execute request:
   # explicit approval evidence, a role scope matching the resolved
   # required-role grant scope (the least-privilege grant at the target
   # resource group) and, for an initiative-member record, the member reference
@@ -38,7 +37,6 @@ locals {
       assignment_key                 = "modify-tag-rg"
       scope_type                     = "resource_group"
       scope_id                       = var.target_resource_group_id
-      policy_assignment_id           = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/injected-by-root-from-assignment-key"
       member_reference_id            = "add-costcentre-tag-member"
       policy_definition_reference_id = "add-costcentre-tag-member"
       resource_discovery_mode        = "ExistingNonCompliant"
@@ -51,7 +49,7 @@ locals {
   }
 
   # Governed exemption request for stage 2. assignment_id is the
-  # caller-supplied created assignment ID from stage 1, which the exemptions
+  # caller-supplied created assignment ID from stage 1, which the operations
   # module verifies against the resolved assignment inventory before creating
   # the resource-group-scoped exemption.
   exemption_requests = {

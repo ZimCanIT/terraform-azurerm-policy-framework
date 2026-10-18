@@ -5,8 +5,14 @@ resource "terraform_data" "contract_guard" {
 
   lifecycle {
     precondition {
-      condition     = local.parameters_valid[each.key]
+      condition     = local.parameters_valid[each.key] || local.parameters_without_schema[each.key]
       error_message = "Assignment ${each.key} has invalid parameters: unknown keys [${join(", ", sort(tolist(local.parameter_unknown_keys[each.key])))}], missing required values [${join(", ", local.parameter_missing_required[each.key])}], malformed or unsupported schema entries [${join(", ", local.parameter_schema_type_offenders[each.key])}], type mismatches [${join(", ", local.parameter_type_offenders[each.key])}], or values outside the schema allowedValues."
+    }
+    # With an unknown schema the parameters precondition above passes and this one
+    # fails, so the case has a single diagnostic that names the supplied keys.
+    precondition {
+      condition     = !local.parameters_without_schema[each.key]
+      error_message = "Assignment ${each.key} supplies parameters [${join(", ", sort(keys(each.value.parameters)))}], but its resolved parameter schema is unknown, so no supplied value can be checked; supply no parameters or resolve the schema first."
     }
     precondition {
       condition     = local.effect_enforceability_valid[each.key]

@@ -4,6 +4,21 @@ locals {
   json_integer_pattern      = "^-?(0|[1-9][0-9]*)$"
   rfc3339_pattern           = "^[0-9]{4}-[0-9]{2}-[0-9]{2}T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$"
 
+  # Scope grammar, written once for this module. Variable validations read
+  # these constants, so they must stay independent of every variable.
+  # Subscription IDs are GUIDs, as Azure issues them, and a resource scope names
+  # a provider, a type and a resource. behaviour-resolution and identity-rbac
+  # write the same grammar, so an ID is accepted or rejected alike at each
+  # hand-off.
+  scope_types = ["management_group", "subscription", "resource_group", "resource"]
+
+  scope_patterns = {
+    management_group = "^/providers/Microsoft\\.Management/managementGroups/[^/]+$"
+    subscription     = "^/subscriptions/[0-9a-fA-F-]{36}$"
+    resource_group   = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    resource         = "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$"
+  }
+
   assignment_entries = {
     for key, record in var.assignments :
     key => {
@@ -44,8 +59,11 @@ locals {
       initiative_content_version = try(record.resolved.initiative_content_version, null)
       members                    = try(record.resolved.members, null)
       parameter_mappings         = try(record.resolved.parameter_mappings, null)
-      identity_binding           = try(var.identity_bindings[key], null)
-      identity_id                = try(var.identity_bindings[key].id, try(var.identity_bindings[key].identity_id, null))
+      # Bindings are read only for assignment keys. A binding with no matching assignment
+      # is ignored on purpose, because this state is destroyed before the role-grant state
+      # and a stale binding must not block that destroy.
+      identity_binding = try(var.identity_bindings[key], null)
+      identity_id      = try(var.identity_bindings[key].id, null)
     }
   }
 
@@ -131,7 +149,6 @@ locals {
 
   # Assignments partitioned by scope type once; each scope resource iterates
   # its own partition. Keys are the stable assignment keys.
-  scope_types = ["management_group", "subscription", "resource_group", "resource"]
   by_scope = {
     for scope_type in local.scope_types : scope_type => {
       for key, assignment in local.assignment_entries : key => assignment if assignment.scope.type == scope_type
@@ -281,6 +298,15 @@ locals {
     # schemas are validated with the same required/type/value rules as direct
     # definition schemas.
     key => review.schema == null ? (review.supplied == null || length(keys(review.supplied)) == 0) : length(local.parameter_unknown_keys[key]) == 0 && length(local.parameter_missing_required[key]) == 0 && alltrue(values(local.parameter_schema_type_valid_by_parameter[key])) && local.parameter_type_valid[key] && local.parameter_allowed_values_valid[key]
+  }
+
+  # A supplied parameter set under an unknown schema cannot be checked. Its
+  # parameters_valid entry is false while every diagnostic list is empty, so the
+  # parameters precondition accepts this case and the precondition on
+  # parameters_without_schema reports it with a message that names the supplied keys.
+  parameters_without_schema = {
+    for key, review in local.parameter_reviews :
+    key => review.schema == null && !(review.supplied == null || length(keys(review.supplied)) == 0)
   }
 
   # An effect override addresses the definition unless a policyDefinitionReferenceId
@@ -450,6 +476,17 @@ locals {
       replacement_review = local.replacement_review[key]
       created_by_module  = true
     }
+  }
+
+  # The records this module received, handed back with the lifecycle binding of
+  # the assignment it owns. Records are otherwise unchanged. The binding ID is
+  # null when no assignment resource exists for the record and unknown while one
+  # is planned, and a consumer must not read either as a match. Downstream
+  # modules read this instead of rebuilding it.
+  resolved_assignments = {
+    for key, record in var.assignments : key => merge(record, {
+      assignment = merge(try(record.assignment, {}), local.assignment_outputs[key].assignment)
+    })
   }
 
   assignment_resource_ids = merge([

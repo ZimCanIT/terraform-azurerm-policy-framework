@@ -610,3 +610,15 @@ run "rejects_null_initiative_id_with_contract_diagnostic" {
   variables { initiatives = { malformed_initiative = { id = null, created_by_module = true, policy_definition_references = [] } } }
   expect_failures = [var.initiatives]
 }
+
+run "rejects_initiative_without_member_list" {
+  command = plan
+  variables { initiatives = { malformed_initiative = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policySetDefinitions/malformed", created_by_module = true } } }
+  expect_failures = [var.initiatives]
+}
+
+run "rejects_null_initiative_member_list" {
+  command = plan
+  variables { initiatives = { malformed_initiative = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policySetDefinitions/malformed", created_by_module = true, policy_definition_references = null } } }
+  expect_failures = [var.initiatives]
+}

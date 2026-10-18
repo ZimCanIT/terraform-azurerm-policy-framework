@@ -11,6 +11,46 @@ root = Path(__file__).resolve().parents[1]
 
 snapshot_discovery_failures = []
 
+# The module set is the state set: each module owns the resources of one state,
+# so the principal that applies a state needs only that state's permissions.
+# catalogue and behaviour-resolution are provider-free and own no resource.
+module_names = {
+    "catalogue",
+    "behaviour-resolution",
+    "content",
+    "identity-rbac",
+    "assignments",
+    "operations",
+}
+
+# Provider-free modules declare no provider; every other versions.tf may declare only AzureRM.
+provider_free_modules = {"catalogue", "behaviour-resolution"}
+
+scope_families = ("management_group", "subscription", "resource_group", "resource")
+
+# Every AzureRM resource type has exactly one owning module. Identities and role
+# assignments exist only in identity-rbac and policy assignments only in
+# assignments, so neither the assignment state nor the operations state can
+# grant itself a role.
+resource_owners = {
+    "content": {
+        "azurerm_policy_definition",
+        "azurerm_policy_set_definition",
+        "azurerm_management_group_policy_set_definition",
+    },
+    "identity-rbac": {"azurerm_user_assigned_identity", "azurerm_role_assignment"},
+    "assignments": {f"azurerm_{scope}_policy_assignment" for scope in scope_families},
+    "operations": {
+        f"azurerm_{scope}_policy_{kind}"
+        for scope in scope_families
+        for kind in ("remediation", "exemption")
+    },
+}
+
+# Modules that create Azure resources document the permissions their state needs
+# and the separation it relies on.
+permission_headings = ("## Azure permissions", "## Separation of duties")
+
 
 def git_paths(*arguments):
     result = subprocess.run(
@@ -145,6 +185,172 @@ def check_forbidden_operations(files):
     return failures
 
 
+def check_module_set(files):
+    present = set()
+    for path in files:
+        parts = path.relative_to(root).parts
+        if len(parts) > 2 and parts[0] == "modules":
+            present.add(parts[1])
+    failures = [f"modules/{name} is missing from the module set" for name in sorted(module_names - present)]
+    failures.extend(
+        f"modules/{name} is not part of the module set" for name in sorted(present - module_names)
+    )
+    return failures
+
+
+def check_resource_ownership(files):
+    declaration = re.compile(r'^\s*resource\s+"(azurerm_[a-z0-9_]+)"\s+"[^"]+"', re.MULTILINE)
+    declared = {}
+    excluded_directories = {"tests", "examples", ".terraform"}
+    for path in files:
+        parts = path.relative_to(root).parts
+        if path.suffix != ".tf":
+            continue
+        # Examples, tests and fixtures consume modules and may declare their own
+        # resources; .terraform holds downloaded copies. Every other .tf file under
+        # modules/<name>/, at any depth, belongs to that module.
+        if len(parts) == 1:
+            owner = "the root module"
+        elif parts[0] == "modules" and len(parts) > 2 and excluded_directories.isdisjoint(parts[2:-1]):
+            owner = parts[1]
+        else:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in declaration.finditer(text):
+            declared.setdefault(match.group(1), set()).add(owner)
+
+    failures = []
+    for resource_type, owners in sorted(declared.items()):
+        if len(owners) > 1:
+            failures.append(
+                f"{resource_type} is declared in several modules: {', '.join(sorted(owners))}"
+            )
+        for owner in sorted(owners):
+            if resource_type not in resource_owners.get(owner, set()):
+                failures.append(
+                    f"{owner} declares {resource_type}, which the ownership map does not assign to it"
+                )
+    for owner, resource_types in sorted(resource_owners.items()):
+        for resource_type in sorted(resource_types):
+            if owner not in declared.get(resource_type, set()):
+                failures.append(f"the ownership map assigns {resource_type} to {owner}, which does not declare it")
+    return failures
+
+
+def check_permission_sections(files):
+    failures = []
+    readmes = {path.relative_to(root).as_posix(): path for path in files}
+    for module in sorted(resource_owners):
+        name = f"modules/{module}/README.md"
+        if name not in readmes:
+            failures.append(f"{name} is missing")
+            continue
+        headings = set()
+        in_fence = False
+        for line in readmes[name].read_text(encoding="utf-8").splitlines():
+            if line.startswith("```"):
+                in_fence = not in_fence
+            elif not in_fence and line.startswith("## "):
+                headings.add(line.rstrip())
+        failures.extend(
+            f"{name} is missing the '{heading}' section"
+            for heading in permission_headings
+            if heading not in headings
+        )
+    return failures
+
+
+def required_provider_sources(text):
+    # Terraform assigns hashicorp/<name> to a provider entry without a source attribute,
+    # so such an entry is checked under that implicit source.
+    sources = []
+    for opening in re.finditer(r"\brequired_providers\s*\{", text):
+        depth = 0
+        for end in range(opening.end() - 1, len(text)):
+            if text[end] == "{":
+                depth += 1
+            elif text[end] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+        block = text[opening.end():end]
+        for entry in re.finditer(r"^\s*([A-Za-z0-9_-]+)\s*=\s*\{([^{}]*)\}", block, re.MULTILINE):
+            explicit = re.search(r'\bsource\s*=\s*"([^"]*)"', entry.group(2))
+            sources.append(explicit.group(1) if explicit else f"hashicorp/{entry.group(1)}")
+    return sources
+
+
+def check_provider_sets(files):
+    failures = []
+    for path in files:
+        relative = path.relative_to(root)
+        if relative.parts == ("versions.tf",):
+            owner, allowed = "the root module", {"hashicorp/azurerm"}
+        elif len(relative.parts) == 3 and relative.parts[0] == "modules" and relative.parts[2] == "versions.tf":
+            name = relative.parts[1]
+            owner = f"modules/{name}"
+            allowed = set() if name in provider_free_modules else {"hashicorp/azurerm"}
+        else:
+            continue
+        for source in required_provider_sources(path.read_text(encoding="utf-8")):
+            if source not in allowed:
+                failures.append(
+                    f"{relative.as_posix()} declares the provider source {source}, which {owner} may not declare"
+                )
+    return failures
+
+
+def check_readme_names(files):
+    # Forward check only: every declared variable and output must be named in the README
+    # of its root or module. A name left behind in a README after removal is not detected.
+    failures = []
+    present = {path.relative_to(root).as_posix() for path in files}
+    for directory in [Path("."), *(Path("modules") / name for name in sorted(module_names))]:
+        readme = (directory / "README.md").as_posix()
+        if readme not in present:
+            failures.append(f"{readme} is missing")
+            continue
+        named = set(re.findall(r"`([^`\n]+)`", (root / readme).read_text(encoding="utf-8")))
+        for keyword, source in (("variable", "variables.tf"), ("output", "outputs.tf")):
+            source_path = (directory / source).as_posix()
+            if source_path not in present:
+                continue
+            declared = re.findall(
+                rf'^\s*{keyword}\s+"([^"]+)"',
+                (root / source_path).read_text(encoding="utf-8"),
+                re.MULTILINE,
+            )
+            failures.extend(
+                f"{readme} does not name the {keyword} `{name}`" for name in declared if name not in named
+            )
+    return failures
+
+
+def check_local_references(files):
+    # The ignored folder name counts only at the start of a path: a segment inside a longer
+    # path or inside a URL is not a reference to the local folder.
+    ignored_folder_reference = re.compile(r"(^|[^A-Za-z0-9_./:-])(docs/(?:[A-Za-z0-9_/-]+(?:\.[A-Za-z0-9_-]+)*)?)")
+    local_names = re.compile(r"AGENTS\.md|opencode\.json|\.claude/", re.IGNORECASE)
+    failures = []
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        # The gate spells out the patterns it searches for, so it does not scan itself.
+        # The ignore rules name the local-only paths in order to exclude them.
+        if relative in {"scripts/repository_gate.py", ".gitignore"}:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for number, line in enumerate(text.splitlines(), start=1):
+            matches = [match.group(2) for match in ignored_folder_reference.finditer(line)]
+            matches += [match.group(0) for match in local_names.finditer(line)]
+            failures.extend(
+                f"{relative}:{number}: references the local-only path or file {match}" for match in matches
+            )
+    return failures
+
+
 # Secret scanning is owned by the gitleaks step in .github/workflows/security.yml.
 parser = argparse.ArgumentParser(description="Check the exact public source candidate inventory.")
 parser.add_argument("--manifest", type=Path, help="Use a JSON file inventory for an isolated package snapshot.")
@@ -154,6 +360,12 @@ failures = list(snapshot_discovery_failures)
 failures.extend(check_links(public_markdown(files), files))
 failures.extend(check_package_snapshot(files))
 failures.extend(check_forbidden_operations(files))
+failures.extend(check_module_set(files))
+failures.extend(check_resource_ownership(files))
+failures.extend(check_permission_sections(files))
+failures.extend(check_provider_sets(files))
+failures.extend(check_readme_names(files))
+failures.extend(check_local_references(files))
 if failures:
     print("\n".join(failures))
     sys.exit(1)

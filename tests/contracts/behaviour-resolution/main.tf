@@ -295,15 +295,12 @@ module "identity_rbac" {
 module "assignments" {
   source = "../../../modules/assignments"
 
-  assignments = local.resolved_assignment_inventory
-  identity_bindings = {
-    for key, record in module.identity_rbac.identity_rbac : key => record.assignment_binding
-    if record.assignment_binding != null
-  }
+  assignments       = local.resolved_assignment_inventory
+  identity_bindings = module.identity_rbac.assignment_bindings
 }
 
-module "remediations" {
-  source = "../../../modules/remediations"
+module "operations" {
+  source = "../../../modules/operations"
 
   resolved_assignments = local.resolved_assignment_inventory
   requests = {
@@ -312,7 +309,6 @@ module "remediations" {
       assignment_key           = "remediation_assignment"
       scope_type               = "subscription"
       scope_id                 = "/subscriptions/00000000-0000-0000-0000-000000000000"
-      policy_assignment_id     = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/remediation_assignment"
       resource_discovery_mode  = "ExistingNonCompliant"
       location_filters         = null
       resource_count           = 10
@@ -324,12 +320,6 @@ module "remediations" {
       expected_evidence_status = null
     }
   }
-}
-
-module "exemptions" {
-  source = "../../../modules/exemptions"
-
-  assignments = local.resolved_assignment_inventory
   exemptions = {
     test_exemption = {
       request_mode  = "create"
@@ -378,9 +368,9 @@ output "assignments" {
 }
 
 output "remediations" {
-  value = module.remediations.requested_operations
+  value = module.operations.requested_operations
 }
 
 output "exemptions" {
-  value = module.exemptions.status_contract
+  value = module.operations.status_contract
 }

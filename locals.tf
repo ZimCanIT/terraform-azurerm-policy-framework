@@ -1,20 +1,4 @@
 locals {
-  # The resolver cannot know the Azure assignment ID before apply, so the root
-  # injects the created ID and name into the shared resolved-assignment record
-  # consumed by the remediation and exemption modules.
-  assignment_lifecycle = {
-    for key, record in module.behaviour_resolution.assignments :
-    key => merge(record, {
-      assignment = merge(
-        try(record.assignment, {}),
-        {
-          id   = try(module.assignments.assignments[key].id, try(record.assignment.id, null))
-          name = try(module.assignments.assignments[key].name, try(record.assignment.name, null))
-        }
-      )
-    })
-  }
-
   resolved_records = values(module.behaviour_resolution.assignments)
   scope_types      = [for record in local.resolved_records : try(record.intent.scope.type, null)]
 

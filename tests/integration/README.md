@@ -8,6 +8,8 @@
 - `minimal-audit-assignment` exercises an assignment-only profile. At live time the harness supplies `assignment_scope_id` from the approved subscription context; it does not need a checked-in UAT variable file.
 - No management-group or other-subscription writes are in scope.
 
+The harness has two profiles, `complete` and `minimal`. It takes the profile from the folder name of `-ExampleRoot`: `complete-policy-lifecycle` selects `complete`, and `minimal-audit-assignment` selects `minimal`. Any other example root exits 1.
+
 The complete profile uses a protected UAT variable file with `create_exemption = false`; the harness owns the later exemption and renewal stages. Prepare a new ignored input for each RunId from `examples/complete-policy-lifecycle/environments/uat/terraform.tfvars.example`, and keep the input at `<ArtifactRoot>/<RunId>/run-input.tfvars`. The harness treats that file as its protected input snapshot without copying onto itself. Do not reuse or overwrite an existing UAT file or run artifact. The complete example runbook describes the required values and Azure prerequisites.
 
 ## Approved local context
@@ -78,7 +80,21 @@ The probe runs only through target group, policy content and target baseline. It
 
 `RunId` must be 1–14 lowercase letters or digits. Use a unique value for each run. The harness uses a global file lock to prevent concurrent live mutations.
 
+Terraform argument probe. It runs Terraform on a generated configuration whose path contains spaces, under `-ArtifactRoot`. It makes no Azure call, so it needs neither Azure CLI nor `-ApprovedContextPath`:
+
+```powershell
+pwsh -File tests/integration/run-live.ps1 -TerraformArgumentProbe
+```
+
+It runs `init`, `validate`, `output` and `plan` on that configuration and exits 0 when each step passes. A failed step stops the script with an error, and Terraform must be on the PATH.
+
+Usage and precondition rejections exit 1. These include an invalid or missing `-ApprovedContextPath`, an invalid `-RunId`, a missing `terraform` or `az` on the PATH, an Azure account that does not match the approved context, an unsupported example root, `-RecoveryProbe` combined with `-SkipApply` or the minimal profile, a missing variable file or one that breaks a profile rule, and an existing run status file. `-CleanupOnly` exits 2 when neither `-RunId` nor `-StatusPath` is given, once the approved context and Azure account checks have passed, and when a resume is refused because no status file exists at the path, the recorded tenant or subscription differs, or the mutation lock belongs to another run. These codes are shared with the test and cleanup results, so read the message as well as the code.
+
 ## Stage sequencing and assertions
+
+In run order, the complete profile logs `stage 0a`, `stage 1a`, `stage 1b`, `stage 1c`, `stage 2` and `renewal`. The status file names each apply stage in `activeStage` while it runs and in `appliedStages` once it succeeds, using the identifiers `stage-0a`, `stage-0b`, `stage-1a`, `stage-1b`, `stage-1c`, `complete-owner-drift-restore`, `stage-2`, `renewal`, `exemption-removal` and `remediation-repeat`. It sets `activeStage` to `complete-owner-drift-mutation` before the Owner tag drift and to `policy-reenforcement-tag-removal-under-exemption` before the policy tag removal. The minimal profile applies `minimal-apply`, `minimal-owner-update` and `minimal-key-replacement`, then checks its plans. The recovery probe stops after `stage-1a` and sets `activeStage` to `recovery-probe-intentional-failure`.
+
+`-ExpectedTagName` and `-ExpectedTagValue` (defaults `CostCentre` and `zctfp-uat`) name the policy-written tag and its value. The initial-absence check and the tag read-back use them. The stage 1 assignment check and the Owner drift step compare the literal `CostCentre` and `zctfp-uat`, and the policy tag removal deletes the literal `CostCentre`, so changing these parameters does not retarget a whole run.
 
 The complete flow first creates the target group, then the policy definition and initiative, then the storage account. Before assignment it confirms `CostCentre` is absent and the Terraform-owned `Owner` tag is present. After assignment it verifies exact assignment scope, policy-set binding, identity and parameters; it compares Azure role grants with captured role-assignment IDs. Before creating a remediation task, the harness triggers a compliance scan scoped to the run-owned resource group. It polls only the captured storage resource and requires a `NonCompliant` state matching the captured assignment ID and exact initiative member reference `add-costcentre-tag-member`; any other, compliant or inconclusive state blocks remediation. It then requires remediation to report at least one successful deployment and zero failed deployments, verifies `CostCentre = zctfp-uat` while `Owner = terraform` remains, creates and reads back the exemption, exercises renewal and requires a converged plan. After remediation, it changes only `Owner` on the run-owned storage resource through its captured exact ID. The saved AzureRM plan must show an `update` that restores `Owner = terraform` and keeps policy-written `CostCentre = zctfp-uat` unchanged. The harness applies that exact plan, checks both tags in Azure and requires a no-change plan.
 
@@ -88,7 +104,7 @@ The minimal flow verifies the initial `audit-sub` assignment, then changes `assi
 
 The harness captures `terraform output -json lifecycle_resource_ids` as the source of resource IDs, including nested role-assignment values. The minimal example also persists its `resolved_assignment_review` output map to read assignment IDs and names by key. Null planned IDs are not treated as evidence of absence. IDs, actual Terraform provider plan actions, and evaluated time/expiry inputs are persisted after every mutation boundary so cleanup can resume safely.
 
-Polling uses bounded retries: role grants 20 × 15 seconds, policy evaluation 20 × 30 seconds, remediation 20 × 30 seconds, tag read-back 10 × 30 seconds, and absence read-back 20 × 15 seconds. A not-found response is the only accepted evidence of absence; access, authentication, network and parse failures remain inconclusive. Repeat remediation additionally compares Azure's task creation timestamps and fails closed when the API does not prove a distinct execution.
+Polling uses bounded retries: role grants 20 × 15 seconds, policy evaluation 30 × 30 seconds, remediation 20 × 30 seconds, tag read-back 10 × 30 seconds, and absence read-back 20 × 15 seconds. A not-found response is the only accepted evidence of absence; access, authentication, network and parse failures remain inconclusive. Repeat remediation additionally compares Azure's task creation timestamps and fails closed when the API does not prove a distinct execution.
 
 ## Cleanup and recovery
 
@@ -118,3 +134,15 @@ pwsh -NoProfile -File tests/integration/run-live.ps1 -StatusPathDemo
 The fixture demo exercises output capture, recovery inputs, assignment and grant assertions, remediation status and distinct-execution timestamp checks, exemption-present/absent read-backs, noncompliance scan gates, tag ownership/re-enforcement, minimal owner metadata expectations and exact CLI command selection. It is contract-fixture evidence, not provider-backed or live Azure evidence. Record the exact command, PowerShell version, result and worktree source in the local delivery record.
 
 Test and cleanup statuses remain separate: exit codes 0 (both pass), 1 (test fails), 2 (cleanup fails), and 3 (both fail). `<ArtifactRoot>` (outside the working tree) holds raw recovery IDs, logs and inventory snapshots; logs redact the approved subscription ID. Do not publish these artefacts.
+
+## Public package smoke check
+
+`smoke-public-package.ps1` checks that the public source is self-contained. It copies the files that Git lists as tracked or not ignored into a new snapshot directory outside the working tree, writes a manifest of the copied paths beside it, and then runs these checks inside the snapshot: `terraform fmt -check -recursive .`, backend-disabled `init` and `validate` for every root in the `validate_roots` group of `scripts/tf-inventory.json`, and `scripts/repository_gate.py` against that manifest. It makes no Azure call and does not run `terraform test`. It prints the Terraform version that the inventory declares but does not compare it with the installed version.
+
+Run it from the repository root with `pwsh`, with Terraform, Git and Python on the PATH:
+
+```powershell
+pwsh -NoProfile -File tests/integration/smoke-public-package.ps1
+```
+
+`-SourceRoot` and `-SnapshotRoot` override the source tree and the snapshot directory. The snapshot directory must not already exist and must lie outside the source tree, or the script exits 2. The script exits 0 when every check passes, 1 when a check fails and 2 when the snapshot cannot be built. Terraform downloads the providers that the roots declare during `init`, so a first run needs network access. The script leaves the snapshot and its manifest in place.

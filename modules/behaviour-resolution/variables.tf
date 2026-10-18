@@ -21,12 +21,12 @@ variable "initiatives" {
 
   validation {
     condition = try(alltrue([
-      for _, initiative in var.initiatives : length(setsubtract(toset(keys(initiative)), toset([
+      for key, initiative in var.initiatives : length(setsubtract(toset(keys(initiative)), toset([
         "catalogue_key", "id", "name", "display_name", "description", "management_group_id", "metadata",
         "parameters", "parameter_schema", "policy_definition_groups", "policy_definition_references", "governance", "version", "created_by_module"
       ]))) == 0
     ]), false)
-    error_message = "Initiative resource outputs may contain only fields from the shared composition contract."
+    error_message = "Initiative resource outputs may contain only fields from the shared composition contract. Offending initiative keys: ${try(join(", ", sort([for key, initiative in var.initiatives : key if !try(length(setsubtract(toset(keys(initiative)), toset(["catalogue_key", "id", "name", "display_name", "description", "management_group_id", "metadata", "parameters", "parameter_schema", "policy_definition_groups", "policy_definition_references", "governance", "version", "created_by_module"]))) == 0, false)])), "<invalid input container>")}."
   }
 
   validation {
@@ -37,17 +37,28 @@ variable "initiatives" {
     error_message = "Initiative resource output ${try(join(", ", [for key, initiative in var.initiatives : key if !try(trimspace(initiative.id) != "" && initiative.created_by_module != null, false)]), "<invalid input container>")} must preserve a non-blank id and created_by_module marker."
   }
 
+  # Absent, null and scalar memberships are skipped here and rejected once by
+  # the membership rule below, so they never produce a member-field message.
   validation {
     condition = try(alltrue([
-      for _, initiative in var.initiatives : alltrue([
-        for member in try(initiative.policy_definition_references, []) : length(setsubtract(toset(keys(member)), toset([
+      for key, initiative in var.initiatives : alltrue([
+        for member in try([for reference in initiative.policy_definition_references : reference], []) : length(setsubtract(toset(keys(member)), toset([
           "reference_id", "definition_key", "initiative_key", "policy_definition_id", "parameter_values", "parameter_schema", "source_type", "created_by_module", "role_definition_ids",
           "group_names", "effect", "required", "version_constraint", "pinned_version", "inherited_version", "selected_version",
           "parameter_mappings", "capabilities", "list_fields", "governance", "resource_version", "provider_version", "target"
         ]))) == 0
       ])
     ]), false)
-    error_message = "Initiative resource member outputs may contain only fields from the shared composition contract."
+    error_message = "Initiative resource member outputs may contain only fields from the shared composition contract. Offending initiative keys: ${try(join(", ", sort([for key, initiative in var.initiatives : key if !try(alltrue([for member in try([for reference in initiative.policy_definition_references : reference], []) : length(setsubtract(toset(keys(member)), toset(["reference_id", "definition_key", "initiative_key", "policy_definition_id", "parameter_values", "parameter_schema", "source_type", "created_by_module", "role_definition_ids", "group_names", "effect", "required", "version_constraint", "pinned_version", "inherited_version", "selected_version", "parameter_mappings", "capabilities", "list_fields", "governance", "resource_version", "provider_version", "target"]))) == 0]), false)])), "<invalid input container>")}."
+  }
+
+  validation {
+    condition = try(alltrue([
+      for key, initiative in var.initiatives : can(regex("^\\[", jsonencode(initiative.policy_definition_references))) && alltrue([
+        for member in initiative.policy_definition_references : can(keys(member))
+      ])
+    ]), false)
+    error_message = "Every initiative must carry policy_definition_references as a non-null list of member objects. Offending initiative keys: ${try(join(", ", sort([for key, initiative in var.initiatives : key if !try(can(regex("^\\[", jsonencode(initiative.policy_definition_references))) && alltrue([for member in initiative.policy_definition_references : can(keys(member))]), false)])), "<invalid input container>")}."
   }
 }
 
@@ -65,7 +76,7 @@ variable "assignments" {
     condition = try(alltrue([
       for key, assignment in var.assignments : trimspace(key) != "" && can(keys(assignment))
     ]), false)
-    error_message = "Each assignment must use a non-blank key and an object value."
+    error_message = "Each assignment must use a non-blank key and an object value. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(trimspace(key) != "" && can(keys(assignment)), false)])), "<invalid input container>")}."
   }
 
   validation {
@@ -81,77 +92,77 @@ variable "assignments" {
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : try(assignment.role_grant_scopes == null, true) || (
+      for key, assignment in var.assignments : try(assignment.role_grant_scopes == null, true) || (
         can(keys(assignment.role_grant_scopes)) &&
         alltrue([
           for role_id, grant_scope in assignment.role_grant_scopes :
           can(regex("^\\\".*\\\"$", jsonencode(role_id))) && trimspace(role_id) != "" &&
-          can(regex("^/providers/Microsoft\\.Management/managementGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$|^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/[^/]+/[^/]+/[^/]+(/[^/]+)*$", trimspace(grant_scope)))
+          can(regex(local.role_grant_scope_pattern, trimspace(grant_scope)))
         ])
       )
     ]), false)
-    error_message = "Assignment role_grant_scopes must be null or a map of role definition ID to a supported Azure scope ID; keys must be non-blank strings."
+    error_message = "Assignment role_grant_scopes must be null or a map of role definition ID to a supported Azure scope ID; keys must be non-blank strings. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(try(assignment.role_grant_scopes == null, true) || (can(keys(assignment.role_grant_scopes)) && alltrue([for role_id, grant_scope in assignment.role_grant_scopes : can(regex("^\\\".*\\\"$", jsonencode(role_id))) && trimspace(role_id) != "" && can(regex(local.role_grant_scope_pattern, trimspace(grant_scope)))])), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : can(keys(assignment.target)) && can(keys(assignment.scope)) && trimspace(assignment.target.reference_id) != "" && contains(["management_group", "subscription", "resource_group", "resource"], assignment.scope.type) && trimspace(assignment.scope.id) != ""
+      for key, assignment in var.assignments : can(keys(assignment.target)) && can(keys(assignment.scope)) && trimspace(assignment.target.reference_id) != "" && contains(local.scope_types, assignment.scope.type) && trimspace(assignment.scope.id) != ""
     ]), false)
-    error_message = "Each assignment requires a target reference_id and a supported non-blank scope."
+    error_message = "Each assignment requires a target reference_id and a supported non-blank scope. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(can(keys(assignment.target)) && can(keys(assignment.scope)) && trimspace(assignment.target.reference_id) != "" && contains(local.scope_types, assignment.scope.type) && trimspace(assignment.scope.id) != "", false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : length([
+      for key, assignment in var.assignments : length([
         for field in ["definition_key", "initiative_key", "policy_definition_id"] : field
         if try(trimspace(assignment.target[field]), "") != ""
       ]) == 1
     ]), false)
-    error_message = "Each assignment target must declare exactly one of definition_key, initiative_key or policy_definition_id."
+    error_message = "Each assignment target must declare exactly one of definition_key, initiative_key or policy_definition_id. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(length([for field in ["definition_key", "initiative_key", "policy_definition_id"] : field if try(trimspace(assignment.target[field]), "") != ""]) == 1, false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : try(assignment.parameters == null, true) || can(keys(assignment.parameters))
+      for key, assignment in var.assignments : try(assignment.parameters == null, true) || can(keys(assignment.parameters))
     ]), false)
-    error_message = "Assignment parameters must be null or an object keyed by parameter name."
+    error_message = "Assignment parameters must be null or an object keyed by parameter name. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(try(assignment.parameters == null, true) || can(keys(assignment.parameters)), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : try(assignment.overrides == null, true) || (
+      for key, assignment in var.assignments : try(assignment.overrides == null, true) || (
         can(regex("^\\[", jsonencode(assignment.overrides))) && alltrue([for override in assignment.overrides : can(keys(override))])
       )
     ]), false)
-    error_message = "Assignment overrides must be null or a list of override objects."
+    error_message = "Assignment overrides must be null or a list of override objects. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(try(assignment.overrides == null, true) || (can(regex("^\\[", jsonencode(assignment.overrides))) && alltrue([for override in assignment.overrides : can(keys(override))])), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : try(assignment.effect == null, true) || can(regex("^[[:print:]]+$", assignment.effect))
+      for key, assignment in var.assignments : try(assignment.effect == null, true) || can(regex("^[[:print:]]+$", assignment.effect))
     ]), false)
-    error_message = "Assignment effect must be null or a printable string."
+    error_message = "Assignment effect must be null or a printable string. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(try(assignment.effect == null, true) || can(regex("^[[:print:]]+$", assignment.effect)), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : try(assignment.version_constraint == null, true) || can(regex("^[[:print:]]+$", assignment.version_constraint))
+      for key, assignment in var.assignments : try(assignment.version_constraint == null, true) || can(regex("^[[:print:]]+$", assignment.version_constraint))
     ]), false)
-    error_message = "Assignment version_constraint must be null or a printable string."
+    error_message = "Assignment version_constraint must be null or a printable string. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(try(assignment.version_constraint == null, true) || can(regex("^[[:print:]]+$", assignment.version_constraint)), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : try(assignment.pinned_version == null, true) || can(regex("^[[:print:]]+$", assignment.pinned_version))
+      for key, assignment in var.assignments : try(assignment.pinned_version == null, true) || can(regex("^[[:print:]]+$", assignment.pinned_version))
     ]), false)
-    error_message = "Assignment pinned_version must be null or a printable string."
+    error_message = "Assignment pinned_version must be null or a printable string. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(try(assignment.pinned_version == null, true) || can(regex("^[[:print:]]+$", assignment.pinned_version)), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, assignment in var.assignments : try(assignment.version_binding == null, true) || assignment.version_binding == "unversioned"
+      for key, assignment in var.assignments : try(assignment.version_binding == null, true) || assignment.version_binding == "unversioned"
     ]), false)
-    error_message = "Assignment version_binding must be omitted or set to unversioned."
+    error_message = "Assignment version_binding must be omitted or set to unversioned. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(try(assignment.version_binding == null, true) || assignment.version_binding == "unversioned", false)])), "<invalid input container>")}."
   }
 
   validation {

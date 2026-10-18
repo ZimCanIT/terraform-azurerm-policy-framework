@@ -16,7 +16,7 @@ locals {
   role_definition_id = "/subscriptions/${var.policy_subscription_id}/providers/Microsoft.Authorization/roleDefinitions/4a9ae827-6dc8-4573-8ac7-8239d42aa03f"
 
   # One custom Modify definition. policy_rule stays a JSON-shaped HCL object:
-  # catalogue requires can(keys(policy_rule)) and modules/definitions applies
+  # catalogue requires can(keys(policy_rule)) and modules/content applies
   # jsonencode itself when creating the azurerm_policy_definition resource.
   # then.effect is the literal effect value, not an expression, because
   # behaviour resolution reads the policy rule effect literally before

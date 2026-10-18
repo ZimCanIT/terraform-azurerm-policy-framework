@@ -9,24 +9,24 @@ output "catalogue" {
 
 output "definitions" {
   description = "Canonical definition resources keyed by stable catalogue key."
-  value       = module.definitions.definitions
+  value       = module.content.definitions
 }
 
 output "initiatives" {
   description = "Canonical initiative resources keyed by stable catalogue key."
-  value       = module.initiatives.initiatives
+  value       = module.content.initiatives
 }
 
 output "resolved_assignments" {
   description = "Shared resolved-assignment contract keyed by stable assignment key, including created assignment IDs and names."
-  value       = local.assignment_lifecycle
+  value       = module.assignments.resolved_assignments
 }
 
 output "lifecycle_resource_ids" {
   description = "Azure resource IDs reported by the assignment, identity/RBAC, remediation and exemption resources."
   value = {
     assignments = {
-      for key, record in local.assignment_lifecycle : key => try(record.assignment.id, null)
+      for key, record in module.assignments.resolved_assignments : key => try(record.assignment.id, null)
     }
     identities = {
       for key, record in module.identity_rbac.identity_rbac : key => try(record.identity_id, null)
@@ -40,9 +40,9 @@ output "lifecycle_resource_ids" {
       }
     }
     remediations = {
-      for key, record in module.remediations.created_operations : key => record.id
+      for key, record in module.operations.created_operations : key => record.id
     }
-    exemptions = module.exemptions.created_exemption_ids
+    exemptions = module.operations.created_exemption_ids
   }
 }
 
@@ -56,12 +56,12 @@ output "governance" {
 
 output "remediations" {
   description = "Requested remediation operations keyed by operation key, with mode, status, eligibility and blocked reasons."
-  value       = module.remediations.requested_operations
+  value       = module.operations.requested_operations
 }
 
 output "exemptions" {
   description = "Exemption lifecycle views: requested, approved, active, expired, blocked and rejected, keyed by request key."
-  value       = module.exemptions.status_contract
+  value       = module.operations.status_contract
 }
 
 output "plan_summary" {

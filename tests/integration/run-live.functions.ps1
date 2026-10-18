@@ -292,7 +292,7 @@ function Wait-RemediationSuccess {
                 if ($PreviousCreatedOn) {
                     $createdAfterPrevious = $false
                     if ($createdOn) {
-                        try { $createdAfterPrevious = [datetimeoffset]::Parse($createdOn).UtcDateTime -gt [datetimeoffset]::Parse($PreviousCreatedOn).UtcDateTime }
+                        try { $createdAfterPrevious = [datetimeoffset]::Parse($createdOn, [System.Globalization.CultureInfo]::InvariantCulture).UtcDateTime -gt [datetimeoffset]::Parse($PreviousCreatedOn, [System.Globalization.CultureInfo]::InvariantCulture).UtcDateTime }
                         catch { $createdAfterPrevious = $false }
                     }
                 }
@@ -320,7 +320,9 @@ function Get-RemediationCreatedOn {
         $properties = Get-JsonProperty -Object $Remediation -Name 'properties'
         $createdOn = Get-JsonProperty -Object $properties -Name 'createdOn'
     }
-    return "$createdOn"
+    # PowerShell 7 returns [datetime] for ISO timestamps; "$value" renders it in the
+    # invariant month-first form, which a day-first culture cannot parse back.
+    return (ConvertTo-Rfc3339Argument $createdOn)
 }
 
 function Get-RemediationCreationObservation {
@@ -563,6 +565,16 @@ function Get-VarFileSwitch {
     return $false
 }
 
+# The harness passes the expiry with -var, which overrides the variable file, so
+# the recorded status must carry the file's value. A file without the key takes
+# the caller's default.
+function Get-VarFileExpiry {
+    param([string]$Path, [string]$Default)
+    $fileExpiry = ConvertTo-Rfc3339Expiry "$(Get-VarFileValue -Path $Path -Name 'exemption_expiry')"
+    if ($fileExpiry) { return $fileExpiry }
+    return $Default
+}
+
 function Get-SourceFingerprint {
     param([string]$Root)
     $sourceFilesByPath = @{}
@@ -764,10 +776,10 @@ function Get-AllowedStateResourcePatterns {
     param([ValidateSet('complete', 'minimal')][string]$Profile)
     $sharedGuards = @(
         '^module\.framework\.module\.catalogue\.terraform_data\.(json_ingestion_contract|initiative_ingestion_contract)$',
-        '^module\.framework\.module\.initiatives\.terraform_data\.initiative_ingestion_contract$',
+        '^module\.framework\.module\.content\.terraform_data\.initiative_ingestion_contract$',
         '^module\.framework\.module\.behaviour_resolution\.terraform_data\.contract_guard$',
-        '^module\.framework\.module\.remediations\.terraform_data\.contract_guard$',
-        '^module\.framework\.module\.exemptions\.terraform_data\.contract_guard$',
+        '^module\.framework\.module\.operations\.terraform_data\.remediation_contract_guard$',
+        '^module\.framework\.module\.operations\.terraform_data\.exemption_contract_guard$',
         '^module\.framework\.module\.governance\.terraform_data\.contract_guard$'
     )
     if ($Profile -eq 'minimal') {
@@ -786,13 +798,13 @@ function Get-AllowedStateResourcePatterns {
         terraform_data = $sharedGuards + @('^module\.framework\.module\.assignments\.terraform_data\.contract_guard\["modify-tag-rg"\]$')
         azurerm_resource_group = @('^azurerm_resource_group\.target$')
         azurerm_storage_account = @('^azurerm_storage_account\.target$')
-        azurerm_policy_definition = @('^module\.framework\.module\.definitions\.azurerm_policy_definition\.this\["add-costcentre-tag"\]$')
-        azurerm_policy_set_definition = @('^module\.framework\.module\.initiatives\.azurerm_policy_set_definition\.subscription\["tag-governance"\]$')
+        azurerm_policy_definition = @('^module\.framework\.module\.content\.azurerm_policy_definition\.this\["add-costcentre-tag"\]$')
+        azurerm_policy_set_definition = @('^module\.framework\.module\.content\.azurerm_policy_set_definition\.subscription\["tag-governance"\]$')
         azurerm_resource_group_policy_assignment = @('^module\.framework\.module\.assignments\.azurerm_resource_group_policy_assignment\.this\["modify-tag-rg"\]$')
         azurerm_user_assigned_identity = @('^module\.framework\.module\.identity_rbac\.azurerm_user_assigned_identity\.this\["modify-tag-rg"\]$')
         azurerm_role_assignment = @('^module\.framework\.module\.identity_rbac\.azurerm_role_assignment\.this\["modify-tag-rg\|[0-9a-f]{40}"\]$')
-        azurerm_resource_group_policy_remediation = @('^module\.framework\.module\.remediations\.azurerm_resource_group_policy_remediation\.this\["remediate-tag-rg"\]$')
-        azurerm_resource_group_policy_exemption = @('^module\.framework\.module\.exemptions\.azurerm_resource_group_policy_exemption\.this\["exempt-tag-rg-uat"\]$')
+        azurerm_resource_group_policy_remediation = @('^module\.framework\.module\.operations\.azurerm_resource_group_policy_remediation\.this\["remediate-tag-rg"\]$')
+        azurerm_resource_group_policy_exemption = @('^module\.framework\.module\.operations\.azurerm_resource_group_policy_exemption\.this\["exempt-tag-rg-uat"\]$')
     }
 }
 
@@ -2010,4 +2022,3 @@ function Assert-RecordedCleanupContext {
         }
     }
 }
-

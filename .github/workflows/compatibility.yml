@@ -1,8 +1,9 @@
 # Declared-range compatibility evidence from scripts/tf-inventory.json: the
-# lower cell (minimum Terraform with minimum AzureRM) and the upper cell (normal
-# Terraform with normal AzureRM). The provider is pinned per root with a
-# throwaway *_override.tf file, so versions.tf is never rewritten. Provider-free
-# roots run on both Terraform versions without AzureRM. No Azure credentials.
+# lower cell (minimum Terraform with minimum AzureRM) and the normal cell (normal
+# Terraform with normal AzureRM). Releases between these pinned points and above
+# them are not exercised. The provider is pinned per root with a throwaway
+# *_override.tf file, so versions.tf is never rewritten. Provider-free roots run
+# on both Terraform versions without AzureRM. No Azure credentials.
 name: compatibility
 
 on:

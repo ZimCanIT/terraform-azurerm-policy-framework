@@ -9,9 +9,20 @@ locals {
     local.built_in_definition_raw_entries,
   )
 
-  # The full built-in policy definition ID shape is shared by required-field
-  # checks; kept as a named value so the predicate line stays readable.
+  # The full built-in policy definition ID shape is shared by the required-field
+  # check and policy_definition_id_patterns; kept as a named value so both
+  # lines stay readable.
   built_in_policy_definition_id_pattern = "^/providers/Microsoft\\.Authorization/policyDefinitions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+
+  # Azure policy definitions can be referenced by a root built-in ID or by a
+  # fully-qualified externally managed custom definition at subscription or
+  # management-group scope. Resource/module IDs and bare custom names are not
+  # portable references and are intentionally rejected.
+  policy_definition_id_patterns = [
+    local.built_in_policy_definition_id_pattern,
+    "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
+    "^/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
+  ]
 
   custom_envelope_fields = toset([
     "catalogue_key", "name", "display_name", "description", "mode", "metadata", "parameters",
