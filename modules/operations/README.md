@@ -83,7 +83,7 @@ exemptions = {
 
 Supported categories are `Waiver` and `Mitigated`. `policy_definition_reference_ids` is null for whole-assignment targeting, empty for verified absence, or a unique list of members of the referenced assignment. Unsupported selectors are rejected, never ignored.
 
-`create`, `update` and `renew` keep the stable resource address and create or update the Azure exemption only when `expires_on` is in the future at the selected evaluation time. An elapsed expiry is classified as expired and does not silently remove an existing Azure exemption from desired state. `expire`, `reject`, `blocked` and `disabled` remove a managed resource from desired state, so Terraform can plan deletion and policy re-enforcement. Azure may retain an expired exemption record, so use `expire` for explicit removal. `active` means approved, unexpired request intent. `azure_status` separately reports whether this module returned a created resource ID.
+`create`, `update` and `renew` keep the stable resource address and create or update the Azure exemption only when `expires_on` is later than the selected evaluation time. A request in one of these modes whose expiry has elapsed, at or before the evaluation time, fails a precondition that names the request keys, so the plan is blocked and no exemption is created, updated or silently removed. `expire`, `reject`, `blocked` and `disabled` remove a managed resource from desired state, so Terraform can plan deletion and policy re-enforcement. Azure may retain an expired exemption record, so use `expire` for explicit removal. `active` means approved, unexpired request intent. `azure_status` separately reports whether this module returned a created resource ID.
 
 ### Exemption contract
 
@@ -101,7 +101,7 @@ The module validates request shape, allowed keys, request mode, strict governanc
 | `requested_exemptions` | Normalised exemption requests keyed by request key. |
 | `approved_exemptions` | Requests selected for creation or renewal with approval or ticket evidence. |
 | `active_exemptions` | Approved, future-dated create, update or renew requests. This is intent, not proof of an active Azure exemption. |
-| `expired_exemptions` | Requests explicitly expired, or whose expiry has elapsed at evaluation time. |
+| `expired_exemptions` | Requests in `expire` mode, and requests in `reject`, `blocked` or `disabled` mode whose expiry has elapsed at the evaluation time. A `create`, `update` or `renew` request with an elapsed expiry never reaches this output because it blocks the plan. |
 | `blocked_exemptions` | Requests explicitly blocked or disabled. |
 | `rejected_exemptions` | Requests explicitly rejected. |
 | `status_contract` | The requested, approved, active, expired, blocked and rejected views together. |

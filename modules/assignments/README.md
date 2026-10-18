@@ -28,14 +28,17 @@ Optional intent fields are:
 - `enforcement_mode`
 - `non_compliance_messages`
 - `rollout`
+- `governance`, an object that becomes the assignment governance only when `resolved.governance` is absent or null
+- `version_constraint` and `pinned_version`, the version requests the resolver carried through; the module does not apply them and rejects them only beside `version_binding = "unversioned"`
+- `version_binding`, which accepts only `unversioned` and opts a direct target out of a selected version, as described below
 
-`resolved.parameter_schema` is keyed by parameter name. For a direct definition target it is the definition schema; for an initiative target it is the policy set's own schema. Supported Azure Policy parameter types are `String`, `Array`, `Object`, `Boolean`, `Integer`, `Float` and `DateTime`. Values must retain their JSON type: `Integer` and `Float` require JSON numbers (so `5` is valid for either, while `"5"` is not); `DateTime` requires a valid RFC 3339 timestamp string. Arrays may contain heterogeneous JSON values, and objects may contain nested values. `allowedValues` matching preserves JSON types, so a number does not match a numeric-looking string; for `Array`, every supplied or default array element must match an allowed value. Each schema entry may contain `type`, `defaultValue` and `allowedValues`; defaults are used in the provider payload when no value is supplied, required entries without defaults must be supplied, and unknown names, incompatible Terraform values and disallowed values are rejected. Unsupported or malformed schema types fail with assignment and parameter attribution. An unknown schema accepts only absent or explicit-empty intent. The payload input source is `intent.parameters`: `resolved.parameter_values` is the resolver's effective member view, not a payload source, because it may include member template-expression mappings used to compose the initiative. Member defaults and mappings are never injected into a set assignment payload. The canonical output's `parameters` field preserves supplied intent values; when a target has no supplied values, it reports `null` for an unknown schema and `{}` for a verified schema, without projecting schema defaults into the review output. Selectors, overrides and non-compliance messages are applied only when their corresponding resolved declarations support the requested kinds and values. AzureRM limits are enforced as 400 exclusions, 10 overrides, and 50 values per selector list. Parameter diagnostics name the assignment key and offending parameter names.
+`resolved.parameter_schema` is keyed by parameter name. For a direct definition target it is the definition schema; for an initiative target it is the policy set's own schema. Supported Azure Policy parameter types are `String`, `Array`, `Object`, `Boolean`, `Integer`, `Float` and `DateTime`. Values must retain their JSON type: `Integer` and `Float` require JSON numbers (so `5` is valid for either, while `"5"` is not); `DateTime` requires a valid RFC 3339 timestamp string. Arrays may contain heterogeneous JSON values, and objects may contain nested values. `allowedValues` matching preserves JSON types, so a number does not match a numeric-looking string; for `Array`, every supplied or default array element must match an allowed value. Each schema entry may contain `type`, `defaultValue` and `allowedValues`. Required entries without defaults must be supplied, and unknown names, incompatible Terraform values and disallowed values are rejected. For a direct definition target, defaults are used in the provider payload when no value is supplied. For an initiative target, defaults are validated like supplied values but are never added to the payload. Unsupported or malformed schema types fail with assignment and parameter attribution. An unknown schema (`resolved.parameter_schema` absent or null) accepts only absent or explicit-empty `intent.parameters`, so every supplied parameter needs a resolved schema that declares it. The payload input source is `intent.parameters`: `resolved.parameter_values` is the resolver's effective member view, not a payload source, because it may include member template-expression mappings used to compose the initiative. Member defaults and mappings are never injected into a set assignment payload. The canonical output's `parameters` field preserves supplied intent values; when `intent.parameters` is absent, it reports `{}` for a direct definition target with a verified schema and `null` otherwise, including every initiative target; an explicit empty map is reported as `{}`. Schema defaults are not projected into the review output. Selectors, overrides and non-compliance messages are applied only when their corresponding resolved declarations support the requested kinds and values. AzureRM limits are enforced as 400 exclusions, 10 overrides, and 50 values per selector list. Parameter diagnostics name the assignment key and offending parameter names.
 
 For an initiative target, `resolved.members` and `resolved.member_reference_ids` carry the complete member inventory. `resolved.overrides` is the authoritative provider payload. The resolver compiles an explicit member-scoped `effect` request into a `policyEffect` override selected by `target.reference_id`; a request cannot alter another member. The assignments module passes that compiled payload to Azure and exposes it in its canonical output. `resolved.governance` is the merged definition, initiative and assignment governance object; the assignment value wins for duplicate keys, and the result is projected into Azure assignment metadata. A direct-target selected version is rejected because the declared AzureRM assignment resource does not expose `definitionVersion`; an exact `x.y.z` pin is not treated as enforced merely because its text is exact. By default, an inherited definition pin remains selected and is rejected for a direct target. To deliberately use the unversioned Azure policy ID, set `intent.version_binding = "unversioned"` on a direct target with no assignment-level version request. This explicit opt-out sets `resolved.selected_version` to null while preserving definition-level pin/constraint provenance in `resolved.source_version`; it does not guarantee a policy version. Initiatives cannot use this option. `resolved.required_roles` records, including any `grant_scope` field, pass through to the `assignments` output.
 
 The nested `intent` and `resolved` containers are exact contracts. Legacy flattened fields such as `target`, `scope`, `parameters`, `selectors`, `overrides`, `rollout` and `enforcement_mode` are rejected.
 
-`scope.type` must be one of `management_group`, `subscription`, `resource_group` or `resource`, and `scope.id` must be the matching Azure scope ID. A `resource` scope ID names the provider, the type and the resource, as in `/subscriptions/<subscription-id>/resourceGroups/<group>/providers/Microsoft.Storage/storageAccounts/<name>`; a bare resource type is rejected. Management-group assignment names are limited to 24 characters; other scopes are limited to 64. Long or colliding deterministic bases receive an eight-character SHA-1 key suffix, so changing the assignment key can replace the Azure assignment.
+`scope.type` must be one of `management_group`, `subscription`, `resource_group` or `resource`, and `scope.id` must be the matching Azure scope ID. A `resource` scope ID names the provider, the type and the resource, as in `/subscriptions/<subscription-id>/resourceGroups/<group>/providers/Microsoft.Storage/storageAccounts/<name>`; a bare resource type is rejected. Management-group assignment names are limited to 24 characters; other scopes are limited to 64. The deterministic name base is the assignment key, the scope type and the target reference ID joined with hyphens, lower-cased, with every character outside `a-z`, `0-9` and `-` replaced by a hyphen. Changing the key, the scope type or the reference ID changes the name and so replaces the Azure assignment; `replacement_review` reports it. A base that exceeds the limit or is shared by two keys is cut to 15 characters at a management group and 55 elsewhere, and receives an eight-character suffix taken from the SHA-1 of the assignment key.
 
 ### Output
 
@@ -51,6 +54,8 @@ The nested `intent` and `resolved` containers are exact contracts. Legacy flatte
 `resolved_assignments` returns each received record unchanged except for its `assignment` binding, which holds the Azure ID and the deterministic name of the assignment this module created. It is the `resolved_assignments` input of the operations module, so no caller rebuilds the binding. While an assignment is planned for creation its ID is unknown until apply, and a null ID means no assignment resource exists for the record. A consumer treats both as not yet bound and never as a match.
 
 ## Example
+
+The resolved `parameter_schema` declares every parameter the assignment may set; without it the module accepts no parameters. This schema is the one the built-in Allowed locations definition declares: a required `listOfAllowedLocations` array and an `effect` that defaults to `Deny`.
 
 ```hcl
 module "assignments" {
@@ -68,9 +73,8 @@ module "assignments" {
           id   = "/subscriptions/00000000-0000-0000-0000-000000000000"
         }
         parameters = {
-          effect = {
-            value = "Audit"
-          }
+          listOfAllowedLocations = { value = ["westeurope", "swedencentral"] }
+          effect                 = { value = "Audit" }
         }
         rollout = {
           stage  = "pilot"
@@ -79,7 +83,18 @@ module "assignments" {
       }
       resolved = {
         policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c"
-        parameter_values     = { effect = "Audit" }
+        parameter_schema = {
+          listOfAllowedLocations = { type = "Array" }
+          effect = {
+            type          = "String"
+            defaultValue  = "Deny"
+            allowedValues = ["Audit", "Deny", "Disabled"]
+          }
+        }
+        parameter_values = {
+          listOfAllowedLocations = ["westeurope", "swedencentral"]
+          effect                 = "Audit"
+        }
       }
     }
   }
