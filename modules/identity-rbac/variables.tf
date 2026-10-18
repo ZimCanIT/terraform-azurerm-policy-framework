@@ -21,7 +21,7 @@ variable "assignments" {
       for key, assignment in var.assignments :
       length(setsubtract(toset(keys(assignment)), toset(["assignment_key", "intent", "resolved", "assignment"]))) == 0
     ]), false)
-    error_message = "Assignments may contain only fields from the shared resolved-assignment contract."
+    error_message = "Assignments may contain only fields from the shared resolved-assignment contract. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(length(setsubtract(toset(keys(assignment)), toset(["assignment_key", "intent", "resolved", "assignment"]))) == 0, false)])), "assignments (invalid container)")}."
   }
 
   validation {
@@ -50,7 +50,7 @@ variable "assignments" {
         can(regex("^\\\".*\\\"$", jsonencode(assignment.resolved.identity.resource_group_name))) && trimspace(assignment.resolved.identity.resource_group_name) != ""
       )
     ]), false)
-    error_message = "Identity-required assignments need non-blank name_basis, location and resource_group_name."
+    error_message = "Identity-required assignments need non-blank name_basis, location and resource_group_name. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(!assignment.resolved.identity.required || (can(regex("^\\\".*\\\"$", jsonencode(assignment.resolved.identity.name_basis))) && trimspace(assignment.resolved.identity.name_basis) != "" && can(regex("^\\\".*\\\"$", jsonencode(assignment.resolved.identity.location))) && trimspace(assignment.resolved.identity.location) != "" && can(regex("^\\\".*\\\"$", jsonencode(assignment.resolved.identity.resource_group_name))) && trimspace(assignment.resolved.identity.resource_group_name) != ""), false)])), "assignments (invalid container)")}."
   }
 
   validation {
@@ -80,7 +80,7 @@ variable "assignments" {
         "${lower(try(trimspace(role.role_definition_id), ""))}|${try(trimspace(role.grant_scope), "")}"
       ])) == length(try(tolist(assignment.resolved.required_roles) == null ? [] : tolist(assignment.resolved.required_roles), []))
     ]), false)
-    error_message = "Each assignment must have unique role-definition and grant-scope pairs."
+    error_message = "Each assignment must have unique role-definition and grant-scope pairs. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(length(distinct([for role in try(tolist(assignment.resolved.required_roles) == null ? [] : tolist(assignment.resolved.required_roles), []) : "${lower(try(trimspace(role.role_definition_id), ""))}|${try(trimspace(role.grant_scope), "")}"])) == length(try(tolist(assignment.resolved.required_roles) == null ? [] : tolist(assignment.resolved.required_roles), [])), false)])), "assignments (invalid container)")}."
   }
 
   validation {
@@ -93,6 +93,6 @@ variable "assignments" {
       ]) &&
       (assignment.resolved.identity.required ? length(assignment.resolved.list_fields.role_definition_ids) > 0 : length(assignment.resolved.list_fields.role_definition_ids) == 0)
     ]), false)
-    error_message = "Each assignment must provide a verified candidate role list with valid role-definition resource IDs, non-empty for an identity and explicitly empty without one."
+    error_message = "Each assignment must provide a verified candidate role list with valid role-definition resource IDs, non-empty for an identity and explicitly empty without one. Offending assignment keys: ${try(join(", ", sort([for key, assignment in var.assignments : key if !try(can(tolist(assignment.resolved.list_fields.role_definition_ids)) && assignment.resolved.list_fields.role_definition_ids != null && alltrue([for candidate in assignment.resolved.list_fields.role_definition_ids : can(regex(local.role_definition_pattern, trimspace(candidate)))]) && (assignment.resolved.identity.required ? length(assignment.resolved.list_fields.role_definition_ids) > 0 : length(assignment.resolved.list_fields.role_definition_ids) == 0), false)])), "assignments (invalid container)")}."
   }
 }
