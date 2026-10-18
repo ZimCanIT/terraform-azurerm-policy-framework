@@ -58,7 +58,7 @@ module "policy" {
 
 Replace `<commit-sha>` and the all-zero subscription ID. Use the subscription your `azurerm` provider targets, because a custom definition without `management_group_id` is created there. To read definitions and initiatives from flat JSON directories instead of inline HCL, set `custom_definition_directory`, `built_in_reference_directory` and `initiative_directory` in `catalogue`; the file formats are in [modules/catalogue/README.md](modules/catalogue/README.md).
 
-- You own the provider configuration, backend and state. The module declares `required_providers` only, prescribes no management-group hierarchy and uses no data sources: built-in definitions are referenced by ID and never looked up.
+- You own the provider configuration, backend and state. The module declares no provider configuration, and its only provider declaration is `required_providers`. It prescribes no management-group hierarchy and uses no data sources: built-in definitions are referenced by ID and never looked up.
 - Scope IDs come from your inputs. Keep them out of portable catalogue files; an optional `management_group_id` on a definition or initiative entry is passed through unchanged.
 - `terraform validate` does not run input validation rules or preconditions, so contract errors appear at `terraform plan`. The plan also lists `terraform_data` guard resources, which hold no policy content and exist to run those checks.
 
@@ -91,7 +91,7 @@ The catalogue, behaviour-resolution and governance modules create no Azure resou
 
 The modules never read state. A reference root passes each hand-off to the next module as a plain input, read with `terraform_remote_state`, and a pipeline can supply the same values another way.
 
-Each module README lists the Azure permissions its state needs and the duties to keep apart: [content](modules/content/README.md#azure-permissions), [identity-rbac](modules/identity-rbac/README.md#azure-permissions), [assignments](modules/assignments/README.md#azure-permissions) and [operations](modules/operations/README.md#azure-permissions). Only `identity-rbac` declares identity and role-assignment resources, so an assignment state cannot create an identity or grant a role. The repository gate fails if an Azure resource type is declared anywhere other than the module that owns it.
+Each module README lists the Azure permissions its state needs and the duties to keep apart: [content](modules/content/README.md#azure-permissions), [identity-rbac](modules/identity-rbac/README.md#azure-permissions), [assignments](modules/assignments/README.md#azure-permissions) and [operations](modules/operations/README.md#azure-permissions). Only `identity-rbac` declares identity and role-assignment resources, so an assignment state cannot create an identity or grant a role. The repository gate fails if the root module, or a module's `.tf` files outside its `examples` and `tests` folders, declares an AzureRM resource type that the module does not own. It does not scan the top-level `examples`, `tests` or `governance` folders, so review those by hand.
 
 [`examples/state-separated-lifecycle`](examples/state-separated-lifecycle/README.md) applies the framework this way with local state. It runs under one operator, so it shows the boundaries and hand-offs without separating duties. Giving each state its own principal is outside this repository.
 
@@ -99,7 +99,7 @@ The composite root described in this README runs every module in one state with 
 
 ## Inputs
 
-All inputs are optional and default to empty.
+All inputs are optional. They default to empty, except `evaluation_time`, which defaults to null.
 
 | Name | Type | Purpose |
 | --- | --- | --- |
@@ -155,7 +155,7 @@ Applying any of these examples creates real Azure resources. Each example README
 
 ## Supported versions
 
-Terraform `>= 1.12.0` and the `hashicorp/azurerm` provider `>= 5.0.0, < 6.0.0`. The catalogue, behaviour-resolution and governance modules declare no AzureRM provider requirement. The `compatibility` workflow tests the lower bounds (Terraform 1.12.0 with AzureRM 5.0.0) and Terraform 1.15.9 with AzureRM 5.5.0. Commit a provider lock file in your own root.
+Terraform `>= 1.12.0` and the `hashicorp/azurerm` provider `>= 5.0.0, < 6.0.0`. The catalogue, behaviour-resolution and governance modules declare no AzureRM provider requirement. The `compatibility` workflow pins two cells: the lower cell (Terraform 1.12.0 with AzureRM 5.0.0) and the normal cell (Terraform 1.15.9 with AzureRM 5.5.0). The `ci` workflow runs Terraform 1.15.9 with the newest AzureRM release that satisfies the constraint, because no lock file is committed and `terraform init` resolves a fresh version on each run. Releases between the two pinned versions are not tested one by one. Commit a provider lock file in your own root.
 
 ## Composition ordering on first apply
 

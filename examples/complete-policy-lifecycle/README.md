@@ -31,7 +31,7 @@ All defaults are synthetic. The public input variables are declared in `variable
 | `identity_resource_group_name` | `rg-zctfp-example` | Yes, hosts the managed identity. |
 | `create_exemption` | `false` | Stage 2 only: `true` creates the exemption after the remediation assertion. |
 | `evaluation_time` | `null` | Set once per run to a fixed RFC3339 instant for repeatable exemption expiry classification; never use a moving timestamp for convergent plans. |
-| `exemption_expiry` | `2027-01-31T00:00:00Z` | Yes, RFC3339; persisted for the run and changed only in the renewal step. |
+| `exemption_expiry` | `2027-01-31T00:00:00Z` | Yes, RFC3339; persisted for the run and changed only in the renewal step. The default is a fixed synthetic date. Once it has passed, Terraform refuses to create the exemption, so pass a later RFC 3339 instant. |
 | `exemption_assignment_id` | empty | Stage 2 only: the created assignment ID from the stage 1 output. |
 
 No tenant identifiers, subscription IDs or credentials are checked in. The `environments/uat` profile is a documented input profile, not a separate state root: the example root owns its provider configuration and default local state, and the runbook's staged applies all use that one state, so the profile supplies scope and tenant values through the tfvars template only.
