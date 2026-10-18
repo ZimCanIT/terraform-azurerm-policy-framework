@@ -3,15 +3,11 @@
   "versions": {
     "terraform_min": "1.12.0",
     "terraform_normal": "1.15.9",
-    "terraform_constraint": ">= 1.12.0",
     "azurerm_min": "5.0.0",
     "azurerm_normal": "5.5.0",
     "azurerm_constraint": ">= 5.0.0, < 6.0.0"
   },
   "groups": {
-    "format_roots": [
-      "."
-    ],
     "validate_roots": [
       ".",
       "governance/requirements-and-ownership",

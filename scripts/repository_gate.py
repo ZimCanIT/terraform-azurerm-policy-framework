@@ -23,6 +23,9 @@ module_names = {
     "operations",
 }
 
+# Provider-free modules declare no provider; every other versions.tf may declare only AzureRM.
+provider_free_modules = {"catalogue", "behaviour-resolution"}
+
 scope_families = ("management_group", "subscription", "resource_group", "resource")
 
 # Every AzureRM resource type has exactly one owning module. Identities and role
@@ -198,15 +201,17 @@ def check_module_set(files):
 def check_resource_ownership(files):
     declaration = re.compile(r'^\s*resource\s+"(azurerm_[a-z0-9_]+)"\s+"[^"]+"', re.MULTILINE)
     declared = {}
+    excluded_directories = {"tests", "examples", ".terraform"}
     for path in files:
         parts = path.relative_to(root).parts
         if path.suffix != ".tf":
             continue
         # Examples, tests and fixtures consume modules and may declare their own
-        # resources. Only the root module and the top level of each module count.
+        # resources; .terraform holds downloaded copies. Every other .tf file under
+        # modules/<name>/, at any depth, belongs to that module.
         if len(parts) == 1:
             owner = "the root module"
-        elif len(parts) == 3 and parts[0] == "modules":
+        elif parts[0] == "modules" and len(parts) > 2 and excluded_directories.isdisjoint(parts[2:-1]):
             owner = parts[1]
         else:
             continue
@@ -255,6 +260,97 @@ def check_permission_sections(files):
     return failures
 
 
+def required_provider_sources(text):
+    # Terraform assigns hashicorp/<name> to a provider entry without a source attribute,
+    # so such an entry is checked under that implicit source.
+    sources = []
+    for opening in re.finditer(r"\brequired_providers\s*\{", text):
+        depth = 0
+        for end in range(opening.end() - 1, len(text)):
+            if text[end] == "{":
+                depth += 1
+            elif text[end] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+        block = text[opening.end():end]
+        for entry in re.finditer(r"^\s*([A-Za-z0-9_-]+)\s*=\s*\{([^{}]*)\}", block, re.MULTILINE):
+            explicit = re.search(r'\bsource\s*=\s*"([^"]*)"', entry.group(2))
+            sources.append(explicit.group(1) if explicit else f"hashicorp/{entry.group(1)}")
+    return sources
+
+
+def check_provider_sets(files):
+    failures = []
+    for path in files:
+        relative = path.relative_to(root)
+        if relative.parts == ("versions.tf",):
+            owner, allowed = "the root module", {"hashicorp/azurerm"}
+        elif len(relative.parts) == 3 and relative.parts[0] == "modules" and relative.parts[2] == "versions.tf":
+            name = relative.parts[1]
+            owner = f"modules/{name}"
+            allowed = set() if name in provider_free_modules else {"hashicorp/azurerm"}
+        else:
+            continue
+        for source in required_provider_sources(path.read_text(encoding="utf-8")):
+            if source not in allowed:
+                failures.append(
+                    f"{relative.as_posix()} declares the provider source {source}, which {owner} may not declare"
+                )
+    return failures
+
+
+def check_readme_names(files):
+    # Forward check only: every declared variable and output must be named in the README
+    # of its root or module. A name left behind in a README after removal is not detected.
+    failures = []
+    present = {path.relative_to(root).as_posix() for path in files}
+    for directory in [Path("."), *(Path("modules") / name for name in sorted(module_names))]:
+        readme = (directory / "README.md").as_posix()
+        if readme not in present:
+            failures.append(f"{readme} is missing")
+            continue
+        named = set(re.findall(r"`([^`\n]+)`", (root / readme).read_text(encoding="utf-8")))
+        for keyword, source in (("variable", "variables.tf"), ("output", "outputs.tf")):
+            source_path = (directory / source).as_posix()
+            if source_path not in present:
+                continue
+            declared = re.findall(
+                rf'^\s*{keyword}\s+"([^"]+)"',
+                (root / source_path).read_text(encoding="utf-8"),
+                re.MULTILINE,
+            )
+            failures.extend(
+                f"{readme} does not name the {keyword} `{name}`" for name in declared if name not in named
+            )
+    return failures
+
+
+def check_local_references(files):
+    # The ignored folder name counts only at the start of a path: a segment inside a longer
+    # path or inside a URL is not a reference to the local folder.
+    ignored_folder_reference = re.compile(r"(^|[^A-Za-z0-9_./:-])(docs/(?:[A-Za-z0-9_/-]+(?:\.[A-Za-z0-9_-]+)*)?)")
+    local_names = re.compile(r"AGENTS\.md|opencode\.json|\.claude/", re.IGNORECASE)
+    failures = []
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        # The gate spells out the patterns it searches for, so it does not scan itself.
+        # The ignore rules name the local-only paths in order to exclude them.
+        if relative in {"scripts/repository_gate.py", ".gitignore"}:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for number, line in enumerate(text.splitlines(), start=1):
+            matches = [match.group(2) for match in ignored_folder_reference.finditer(line)]
+            matches += [match.group(0) for match in local_names.finditer(line)]
+            failures.extend(
+                f"{relative}:{number}: references the local-only path or file {match}" for match in matches
+            )
+    return failures
+
+
 # Secret scanning is owned by the gitleaks step in .github/workflows/security.yml.
 parser = argparse.ArgumentParser(description="Check the exact public source candidate inventory.")
 parser.add_argument("--manifest", type=Path, help="Use a JSON file inventory for an isolated package snapshot.")
@@ -267,6 +363,9 @@ failures.extend(check_forbidden_operations(files))
 failures.extend(check_module_set(files))
 failures.extend(check_resource_ownership(files))
 failures.extend(check_permission_sections(files))
+failures.extend(check_provider_sets(files))
+failures.extend(check_readme_names(files))
+failures.extend(check_local_references(files))
 if failures:
     print("\n".join(failures))
     sys.exit(1)

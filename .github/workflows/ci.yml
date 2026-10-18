@@ -1,7 +1,8 @@
-# Pull-request gate for main. Every root listed in scripts/tf-inventory.json
-# is formatted, initialised without a backend, validated and tested with the
-# normal Terraform version. The workflow configures no Azure credentials and
-# never applies or destroys infrastructure: live runs are separate and opt-in.
+# Pull-request gate for main. The whole tree is formatted. Every validate root in
+# scripts/tf-inventory.json is initialised without a backend and validated, and
+# every test root is also tested, all with the normal Terraform version. The
+# workflow configures no Azure credentials and never applies or destroys
+# infrastructure: live runs are separate and opt-in.
 name: ci
 
 on:
@@ -75,13 +76,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Check public documentation, links and the package inventory
         run: python scripts/repository_gate.py
-      - name: Check whitespace
-        run: git diff --check
+      # A bare git diff --check compares the working tree with the index, which are
+      # equal in a fresh checkout, so it can never fail. This step checks the commits
+      # that the pull request or push adds. When the base is unknown (a new branch, an
+      # all-zero before SHA, or an old head removed by a force push), the empty tree
+      # makes every committed line subject to the check, so the whole tree is checked.
+      - name: Check whitespace in the commits under review
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          base="${PR_BASE:-$PUSH_BEFORE}"
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            base="$(git hash-object -t tree /dev/null)"
+          fi
+          git diff --check "$base" HEAD
 
   # Single required status for branch protection: green only when every job
   # above succeeded, so matrix entries can change without editing the rule.
