@@ -61,12 +61,12 @@ variable "native_definitions" {
       for key, definition in var.native_definitions :
       trimspace(key) != "" && can(keys(definition))
     ]), false)
-    error_message = "Each native definition requires a non-blank catalogue key and an object value."
+    error_message = "Each native definition requires a non-blank catalogue key and an object value. Offending catalogue keys: ${try(join(", ", sort([for key, definition in var.native_definitions : key if !try(trimspace(key) != "" && can(keys(definition)), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, definition in var.native_definitions :
+      for key, definition in var.native_definitions :
       length(setsubtract(toset(keys(definition)), toset([
         "source_type", "name", "policy_definition_id", "display_name", "description", "mode",
         "metadata", "parameters", "policy_rule", "management_group_id", "role_definition_ids",
@@ -74,7 +74,7 @@ variable "native_definitions" {
         "capabilities", "governance", "version", "version_constraint", "pinned_version"
       ]))) == 0
     ]), false)
-    error_message = "Native definitions may contain only fields from the canonical definitions contract."
+    error_message = "Native definitions may contain only fields from the canonical definitions contract. Offending catalogue keys: ${try(join(", ", sort([for key, definition in var.native_definitions : key if !try(length(setsubtract(toset(keys(definition)), toset(["source_type", "name", "policy_definition_id", "display_name", "description", "mode", "metadata", "parameters", "policy_rule", "management_group_id", "role_definition_ids", "supported_effects", "supported_overrides", "selectors", "non_compliance_messages", "capabilities", "governance", "version", "version_constraint", "pinned_version"]))) == 0, false)])), "<invalid input container>")}."
   }
 }
 
@@ -100,17 +100,17 @@ variable "native_initiatives" {
       for key, initiative in var.native_initiatives :
       trimspace(key) != "" && can(keys(initiative))
     ]), false)
-    error_message = "Each native initiative requires a non-blank catalogue key and an object value."
+    error_message = "Each native initiative requires a non-blank catalogue key and an object value. Offending catalogue keys: ${try(join(", ", sort([for key, initiative in var.native_initiatives : key if !try(trimspace(key) != "" && can(keys(initiative)), false)])), "<invalid input container>")}."
   }
 
   validation {
     condition = try(alltrue([
-      for _, initiative in var.native_initiatives :
+      for key, initiative in var.native_initiatives :
       length(setsubtract(toset(keys(initiative)), toset([
         "name", "display_name", "description", "metadata", "parameters",
         "policy_definition_references", "policy_definition_groups", "management_group_id", "governance", "version"
       ]))) == 0
     ]), false)
-    error_message = "Native initiatives may contain only fields from the canonical initiatives contract."
+    error_message = "Native initiatives may contain only fields from the canonical initiatives contract. Offending catalogue keys: ${try(join(", ", sort([for key, initiative in var.native_initiatives : key if !try(length(setsubtract(toset(keys(initiative)), toset(["name", "display_name", "description", "metadata", "parameters", "policy_definition_references", "policy_definition_groups", "management_group_id", "governance", "version"]))) == 0, false)])), "<invalid input container>")}."
   }
 }
