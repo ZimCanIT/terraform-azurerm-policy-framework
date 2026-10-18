@@ -11,17 +11,6 @@ locals {
     "group_names", "version_constraint", "pinned_version"
   ])
 
-  # Azure policy definitions can be referenced by a root built-in ID or by a
-  # fully-qualified externally managed custom definition at subscription or
-  # management-group scope. Resource/module IDs and bare custom names are not
-  # portable references and are intentionally rejected. The built-in form is
-  # defined once, in definitions.tf.
-  valid_policy_definition_id = [
-    local.built_in_policy_definition_id_pattern,
-    "^/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
-    "^/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+$",
-  ]
-
   initiative_reference_rule_names = [
     "container_valid",
     "field_allowlist_valid",
@@ -101,7 +90,7 @@ locals {
         direct_definition_id_valid = record.container_ok ? try(
           try(record.reference.definition_key, null) != null && trimspace(record.reference.definition_key) != "" ||
           anytrue([
-            for pattern in local.valid_policy_definition_id :
+            for pattern in local.policy_definition_id_patterns :
             can(regex(pattern, record.reference.policy_definition_id))
           ]),
           false

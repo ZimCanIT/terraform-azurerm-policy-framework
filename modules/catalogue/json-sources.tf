@@ -71,9 +71,6 @@ locals {
   # Per-source views over the shared maps above. These preserve the
   # established local names used by the adapters and the guard preconditions;
   # they add no logic of their own.
-  custom_json_files               = local.json_source_flat_files.custom
-  built_in_json_files             = local.json_source_flat_files.built_in
-  initiative_json_files           = local.json_source_flat_files.initiative
   custom_json_tree_files          = local.json_source_tree_files.custom
   built_in_json_tree_files        = local.json_source_tree_files.built_in
   initiative_json_tree_files      = local.json_source_tree_files.initiative
