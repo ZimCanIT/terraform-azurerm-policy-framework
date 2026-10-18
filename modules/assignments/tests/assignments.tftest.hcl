@@ -584,6 +584,30 @@ run "distinguishes_unknown_and_verified_empty_parameters" {
   }
 }
 
+run "rejects_parameters_when_schema_is_unknown" {
+  command = plan
+
+  variables {
+    assignments = {
+      supplied_without_schema = {
+        intent = {
+          target     = { reference_id = "supplied-without-schema" }
+          scope      = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000001" }
+          parameters = { effect = { value = "Deny" } }
+        }
+        resolved = {
+          policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/supplied-without-schema"
+          parameter_schema     = null
+          identity             = { required = false, strategy = "none" }
+          required_roles       = []
+        }
+      }
+    }
+  }
+
+  expect_failures = [terraform_data.contract_guard]
+}
+
 run "rejects_malformed_records_and_typed_scope_boundaries" {
   command = plan
 

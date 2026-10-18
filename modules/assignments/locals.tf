@@ -59,8 +59,11 @@ locals {
       initiative_content_version = try(record.resolved.initiative_content_version, null)
       members                    = try(record.resolved.members, null)
       parameter_mappings         = try(record.resolved.parameter_mappings, null)
-      identity_binding           = try(var.identity_bindings[key], null)
-      identity_id                = try(var.identity_bindings[key].id, try(var.identity_bindings[key].identity_id, null))
+      # Bindings are read only for assignment keys. A binding with no matching assignment
+      # is ignored on purpose, because this state is destroyed before the role-grant state
+      # and a stale binding must not block that destroy.
+      identity_binding = try(var.identity_bindings[key], null)
+      identity_id      = try(var.identity_bindings[key].id, null)
     }
   }
 
@@ -295,6 +298,15 @@ locals {
     # schemas are validated with the same required/type/value rules as direct
     # definition schemas.
     key => review.schema == null ? (review.supplied == null || length(keys(review.supplied)) == 0) : length(local.parameter_unknown_keys[key]) == 0 && length(local.parameter_missing_required[key]) == 0 && alltrue(values(local.parameter_schema_type_valid_by_parameter[key])) && local.parameter_type_valid[key] && local.parameter_allowed_values_valid[key]
+  }
+
+  # A supplied parameter set under an unknown schema cannot be checked. Its
+  # parameters_valid entry is false while every diagnostic list is empty, so the
+  # parameters precondition accepts this case and the precondition on
+  # parameters_without_schema reports it with a message that names the supplied keys.
+  parameters_without_schema = {
+    for key, review in local.parameter_reviews :
+    key => review.schema == null && !(review.supplied == null || length(keys(review.supplied)) == 0)
   }
 
   # An effect override addresses the definition unless a policyDefinitionReferenceId

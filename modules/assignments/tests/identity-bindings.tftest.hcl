@@ -26,11 +26,15 @@ mock_provider "azurerm" {
   }
 }
 
-# The assignments module attaches an identity that the role-grant state already
-# created. These runs pin that behaviour with identity-required assignments and
-# bindings shaped like the identity-rbac assignment_bindings output. The module
-# declares no identity or role-assignment resource (the repository gate checks
-# this), so a plan here contains policy assignments and guards only.
+# These runs use identity-requiring assignments and bindings shaped like the
+# identity-rbac assignment_bindings output. The first run asserts the identity
+# type and identity ID of each identity-requiring policy assignment, the location
+# of those assignments, the absence of an identity block and location on an
+# audit-only assignment, and the key sets of the subscription and resource group
+# policy assignment outputs. The other runs expect failures from the binding
+# validation and the identity preconditions. No run asserts anything about identity
+# or role-assignment resources: the repository's resource-ownership gate, not these
+# runs, enforces that this module declares none.
 
 variables {
   assignments = {
@@ -124,7 +128,7 @@ run "attaches_the_supplied_identity_to_identity_requiring_assignments" {
 
   assert {
     condition     = toset(keys(output.subscription_policy_assignment_ids)) == toset(["subscription_modify", "audit_only"]) && toset(keys(output.resource_group_policy_assignment_ids)) == toset(["resource_group_deploy"])
-    error_message = "The plan must create one policy assignment per record. No identity or role grant belongs to this module."
+    error_message = "The subscription policy assignment outputs must hold exactly subscription_modify and audit_only, and the resource group policy assignment outputs exactly resource_group_deploy."
   }
 }
 
