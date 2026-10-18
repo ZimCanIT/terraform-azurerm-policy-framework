@@ -992,6 +992,18 @@ if ($HarnessFixtureDemo) {
         finally { [System.Threading.Thread]::CurrentThread.CurrentCulture = $originalCulture }
         $script:fixtureRemediation[0].createdOn = $firstExecution.CreatedOn
 
+        # The status records the variable file's expiry because -var overrides the file. A live run once
+        # recorded a fixed value instead, so the file path is exercised here with a full instant, a
+        # date-only value and a file that omits the key.
+        $expiryVarFile = Join-Path $runDirectory 'expiry-input.tfvars'
+        foreach ($case in @(
+                @{ Content = 'exemption_expiry = "2031-05-06T07:08:09Z"'; Expected = '2031-05-06T07:08:09Z' },
+                @{ Content = 'exemption_expiry = "2031-05-06"'; Expected = '2031-05-06T00:00:00Z' },
+                @{ Content = 'target_resource_group_name = "rg-zctfp-fixture"'; Expected = '2027-01-31T00:00:00Z' })) {
+            [System.IO.File]::WriteAllText($expiryVarFile, $case.Content, [System.Text.UTF8Encoding]::new($false))
+            Assert-Fixture ((Get-VarFileExpiry -Path $expiryVarFile -Default '2027-01-31T00:00:00Z') -ceq $case.Expected) "variable file expiry is recorded as $($case.Expected)"
+        }
+
         $fixtureStorageId = '/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Storage/storageAccounts/zctfpfixturestore'
         $fixtureAssignmentId = $status['createdResourceIds']['assignments'][0]
         $fixtureScanOk = Wait-TargetNonCompliantPolicyState -ResourceGroupName 'rg-zctfp-fixture' -StorageAccountName 'zctfpfixturestore' -ResourceId $fixtureStorageId -AssignmentId $fixtureAssignmentId -MemberReferenceId 'add-costcentre-tag-member' -Settings @{ IntervalSeconds = 0; RetryLimit = 1; DeadlineSeconds = 0 }
@@ -1419,10 +1431,7 @@ if ($runProfile -eq 'complete') {
     $targetStorage = Get-VarFileValue -Path $varFileResolved -Name 'target_storage_account_name'
     $targetRgId = Get-VarFileValue -Path $varFileResolved -Name 'target_resource_group_id'
     $policySubscriptionId = Get-VarFileValue -Path $varFileResolved -Name 'policy_subscription_id'
-    $fileExpiry = ConvertTo-Rfc3339Expiry "$(Get-VarFileValue -Path $varFileResolved -Name 'exemption_expiry')"
-    if (-not $fileExpiry) { $fileExpiry = '2027-01-31T00:00:00Z' }
-    # -var overrides the variable file, so the recorded value must be the file's.
-    $runStatus['terraformVars']['exemption_expiry'] = $fileExpiry
+    $runStatus['terraformVars']['exemption_expiry'] = Get-VarFileExpiry -Path $varFileResolved -Default '2027-01-31T00:00:00Z'
     if (-not $targetRgName -or -not $targetStorage -or -not $targetRgId) {
         Write-Host 'the variable file must set target_resource_group_name, target_storage_account_name and target_resource_group_id'
         exit 1

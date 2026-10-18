@@ -565,6 +565,16 @@ function Get-VarFileSwitch {
     return $false
 }
 
+# The harness passes the expiry with -var, which overrides the variable file, so
+# the recorded status must carry the file's value. A file without the key takes
+# the caller's default.
+function Get-VarFileExpiry {
+    param([string]$Path, [string]$Default)
+    $fileExpiry = ConvertTo-Rfc3339Expiry "$(Get-VarFileValue -Path $Path -Name 'exemption_expiry')"
+    if ($fileExpiry) { return $fileExpiry }
+    return $Default
+}
+
 function Get-SourceFingerprint {
     param([string]$Root)
     $sourceFilesByPath = @{}
