@@ -1400,6 +1400,8 @@ if ($runProfile -eq 'complete') {
     $policySubscriptionId = Get-VarFileValue -Path $varFileResolved -Name 'policy_subscription_id'
     $fileExpiry = ConvertTo-Rfc3339Expiry "$(Get-VarFileValue -Path $varFileResolved -Name 'exemption_expiry')"
     if (-not $fileExpiry) { $fileExpiry = '2027-01-31T00:00:00Z' }
+    # -var overrides the variable file, so the recorded value must be the file's.
+    $runStatus['terraformVars']['exemption_expiry'] = $fileExpiry
     if (-not $targetRgName -or -not $targetStorage -or -not $targetRgId) {
         Write-Host 'the variable file must set target_resource_group_name, target_storage_account_name and target_resource_group_id'
         exit 1
