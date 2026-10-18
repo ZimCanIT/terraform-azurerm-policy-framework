@@ -16,6 +16,11 @@ locals {
   # it cannot drift from the typed patterns.
   role_grant_scope_pattern = join("|", [for type in local.scope_types : local.scope_patterns[type]])
 
+  # Own boundary check on direct assignment targets. The built-in form accepts
+  # any final segment, unlike the catalogue and content grammars, which require
+  # a GUID for a built-in ID.
+  direct_policy_definition_id_pattern = "^(/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+|/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+|/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+)$"
+
   normalised_effects = {
     audit             = "Audit"
     deny              = "Deny"
@@ -205,7 +210,7 @@ locals {
       initiative_exists         = assignment.target.initiative_key == null ? true : contains(keys(local.initiative_entries), assignment.target.initiative_key)
       initiative_contract_valid = assignment.target.initiative_key == null ? true : try(trimspace(assignment.initiative.id), "") != "" && try(assignment.initiative.created_by_module, null) != null
       member_exists             = assignment.target.initiative_key == null ? true : try(contains(keys(local.initiative_member_index[assignment.target.initiative_key]), lower(trimspace(assignment.target.reference_id))), false)
-      direct_id_valid           = assignment.target.policy_definition_id == null || can(regex("^(/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+|/subscriptions/[0-9a-fA-F-]{36}/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+|/providers/Microsoft\\.Management/managementGroups/[^/]+/providers/Microsoft\\.Authorization/policyDefinitions/[^/]+)$", assignment.target.policy_definition_id))
+      direct_id_valid           = assignment.target.policy_definition_id == null || can(regex(local.direct_policy_definition_id_pattern, assignment.target.policy_definition_id))
       definition_id_known       = assignment.target.policy_definition_id != null ? true : assignment.target.initiative_key != null ? try(trimspace(assignment.initiative.id), "") != "" : try(trimspace(local.resolved_definition_entries[key].id), "") != ""
       scope_id_valid            = can(regex(local.scope_patterns[assignment.scope.type], assignment.scope.id))
     }
@@ -328,6 +333,9 @@ locals {
     )
   }
 
+  # A null role list contributes no roles here. initiative_roles_unknown reports
+  # it, and initiative_aggregate_roles then returns null, so this value is never
+  # used as a verified-empty answer.
   initiative_required_roles = {
     for key, members in local.initiative_member_entries : key => distinct(flatten([
       for member_index, member in members :
@@ -567,7 +575,7 @@ locals {
         ]
         selectors            = assignment.selectors
         overrides            = local.compiled_overrides[key]
-        member_reference_ids = try([for member in assignment.initiative.policy_definition_references : member.reference_id], [])
+        member_reference_ids = assignment.target.initiative_key == null ? [] : try([for member in assignment.initiative.policy_definition_references : member.reference_id], null)
         exclusions           = assignment.exclusions
         identity = {
           required            = local.identity_required[key]
