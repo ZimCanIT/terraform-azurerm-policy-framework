@@ -971,6 +971,27 @@ if ($HarnessFixtureDemo) {
         $script:fixtureRemediation[0].createdOn = $firstExecution.CreatedOn
         Assert-Fixture (-not (Wait-RemediationSuccess -ResourceGroupName 'rg-zctfp-fixture' -RemediationId $fixtureRemediationId -Settings @{ IntervalSeconds = 0; RetryLimit = 1; DeadlineSeconds = 0 } -PreviousCreatedOn $firstExecution.CreatedOn)) 'an unchanged successful remediation task cannot count as a repeat execution'
 
+        # az output passes through ConvertFrom-Json, which returns [datetime] for ISO timestamps. A live
+        # repeat remediation failed when such a value was rendered month-first and parsed back under a
+        # day-first culture, so run typed values under en-GB, including a pair that a silent day and
+        # month swap would put in the wrong order.
+        $originalCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+        try {
+            [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo('en-GB')
+            foreach ($case in @(
+                    @{ Previous = '2026-10-18T14:30:12Z'; Newer = '2026-10-18T14:45:50Z' },
+                    @{ Previous = '2026-10-12T09:00:00Z'; Newer = '2026-11-02T09:00:00Z' })) {
+                $script:fixtureRemediation[0].createdOn = ('{"createdOn":"' + $case.Previous + '"}' | ConvertFrom-Json).createdOn
+                $typedPrevious = Get-RemediationCreationObservation -ResourceGroupName 'rg-zctfp-fixture' -RemediationId $fixtureRemediationId
+                $script:fixtureRemediation[0].createdOn = ('{"createdOn":"' + $case.Newer + '"}' | ConvertFrom-Json).createdOn
+                Assert-Fixture ($typedPrevious -and (Wait-RemediationSuccess -ResourceGroupName 'rg-zctfp-fixture' -RemediationId $fixtureRemediationId -Settings @{ IntervalSeconds = 0; RetryLimit = 1; DeadlineSeconds = 0 } -PreviousCreatedOn $typedPrevious.CreatedOn)) "repeat remediation accepts a newer typed createdOn ($($case.Newer)) under a day-first culture"
+                $script:fixtureRemediation[0].createdOn = ('{"createdOn":"' + $case.Previous + '"}' | ConvertFrom-Json).createdOn
+                Assert-Fixture (-not (Wait-RemediationSuccess -ResourceGroupName 'rg-zctfp-fixture' -RemediationId $fixtureRemediationId -Settings @{ IntervalSeconds = 0; RetryLimit = 1; DeadlineSeconds = 0 } -PreviousCreatedOn $typedPrevious.CreatedOn)) "an unchanged typed createdOn ($($case.Previous)) cannot count as a repeat execution under a day-first culture"
+            }
+        }
+        finally { [System.Threading.Thread]::CurrentThread.CurrentCulture = $originalCulture }
+        $script:fixtureRemediation[0].createdOn = $firstExecution.CreatedOn
+
         $fixtureStorageId = '/subscriptions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/resourceGroups/rg-zctfp-fixture/providers/Microsoft.Storage/storageAccounts/zctfpfixturestore'
         $fixtureAssignmentId = $status['createdResourceIds']['assignments'][0]
         $fixtureScanOk = Wait-TargetNonCompliantPolicyState -ResourceGroupName 'rg-zctfp-fixture' -StorageAccountName 'zctfpfixturestore' -ResourceId $fixtureStorageId -AssignmentId $fixtureAssignmentId -MemberReferenceId 'add-costcentre-tag-member' -Settings @{ IntervalSeconds = 0; RetryLimit = 1; DeadlineSeconds = 0 }
@@ -1922,4 +1943,3 @@ finally {
     # here so the process status cannot disagree with the reported result.
     exit (ConvertTo-ExitCode -TestFailed:$script:testFailed -CleanupFailed:$script:cleanupFailed)
 }
-

@@ -292,7 +292,7 @@ function Wait-RemediationSuccess {
                 if ($PreviousCreatedOn) {
                     $createdAfterPrevious = $false
                     if ($createdOn) {
-                        try { $createdAfterPrevious = [datetimeoffset]::Parse($createdOn).UtcDateTime -gt [datetimeoffset]::Parse($PreviousCreatedOn).UtcDateTime }
+                        try { $createdAfterPrevious = [datetimeoffset]::Parse($createdOn, [System.Globalization.CultureInfo]::InvariantCulture).UtcDateTime -gt [datetimeoffset]::Parse($PreviousCreatedOn, [System.Globalization.CultureInfo]::InvariantCulture).UtcDateTime }
                         catch { $createdAfterPrevious = $false }
                     }
                 }
@@ -320,7 +320,9 @@ function Get-RemediationCreatedOn {
         $properties = Get-JsonProperty -Object $Remediation -Name 'properties'
         $createdOn = Get-JsonProperty -Object $properties -Name 'createdOn'
     }
-    return "$createdOn"
+    # PowerShell 7 returns [datetime] for ISO timestamps; "$value" renders it in the
+    # invariant month-first form, which a day-first culture cannot parse back.
+    return (ConvertTo-Rfc3339Argument $createdOn)
 }
 
 function Get-RemediationCreationObservation {
@@ -2010,4 +2012,3 @@ function Assert-RecordedCleanupContext {
         }
     }
 }
-
