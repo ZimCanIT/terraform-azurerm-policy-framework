@@ -33,8 +33,8 @@ locals {
       members              = try(assignment.resolved.members, null)
       effective_effect     = try(assignment.resolved.effective_effect, null)
       member_reference_ids = try(assignment.resolved.member_reference_ids, null)
-      # A blank eligibility value is an absent producer decision, never an eligibility state.
-      remediation_eligibility = try(trimspace(assignment.resolved.remediation_eligibility), "") != "" ? trimspace(assignment.resolved.remediation_eligibility) : null
+      # Null is the only absent producer decision: resolved_assignments rejects blank or unlisted tokens.
+      remediation_eligibility = try(assignment.resolved.remediation_eligibility, null)
       remediation_reason      = try(trimspace(assignment.resolved.remediation_reason), "")
       required_roles          = try(assignment.resolved.required_roles, null)
     }
@@ -252,6 +252,7 @@ locals {
       # An omitted policy_assignment_id takes the ID of the assignment the request
       # names. While that assignment has no ID the value stays null, and the
       # assignment_id_unknown rule blocks an execute or discovery request.
+      # The resolved_assignments boundary has already checked this binding ID's format.
       policy_assignment_id = request.policy_assignment_id != null ? request.policy_assignment_id : (
         try(local.request_context[key].assignment.assignment_id, "") != "" ? local.request_context[key].assignment.assignment_id : null
       )

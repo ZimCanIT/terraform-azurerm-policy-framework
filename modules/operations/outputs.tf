@@ -1,5 +1,5 @@
 output "requested_operations" {
-  description = "Normalised remediation requests keyed by operation key, including mode, scope, approval reference, role scope, evidence metadata, status, blocked reasons and the resolved remediation eligibility decision with its producer reason."
+  description = "Normalised remediation requests keyed by operation key, including mode, scope, approval reference, role scope, evidence metadata, status, blocked reasons, the resolved remediation eligibility with its producer reason, the policy definition ID, the full member inventory and the required-role decision for the selected target."
   value       = local.request_views
 }
 
@@ -20,7 +20,7 @@ output "skipped_operations" {
 }
 
 output "blocked_operations" {
-  description = "Execute or discovery requests that were not eligible for resource creation, keyed by operation key."
+  description = "Execute or discovery requests blocked by unknown, malformed or inconsistent context or controls, including the producer reason, keyed by operation key."
   value       = { for key, request in local.request_views : key => request if request.status == "blocked" }
 }
 
@@ -57,7 +57,7 @@ output "status_contract" {
 }
 
 output "expired_exemptions" {
-  description = "Requests explicitly marked for expiry."
+  description = "Requests in expire mode, and reject, blocked or disabled requests whose expiry has elapsed at the evaluation time. An elapsed create, update or renew request blocks the plan instead."
   value       = local.expired_exemptions
 }
 

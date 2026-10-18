@@ -152,7 +152,7 @@ run "reject_blank_eligibility" {
     }
   }
 
-  expect_failures = [terraform_data.remediation_contract_guard]
+  expect_failures = [var.resolved_assignments]
 }
 
 run "reject_resource_scope_mismatch" {
@@ -328,6 +328,69 @@ run "reject_absent_required_fields" {
         mode           = "execute"
         assignment_key = "assignment_ok"
         scope_type     = "subscription"
+      }
+    }
+  }
+
+  expect_failures = [var.requests]
+}
+
+run "rejects_null_requests" {
+  command = plan
+
+  variables {
+    requests = null
+  }
+
+  expect_failures = [var.requests]
+}
+
+run "rejects_scalar_requests" {
+  command = plan
+
+  variables {
+    requests = "not-a-request-map"
+  }
+
+  expect_failures = [var.requests]
+}
+
+run "rejects_blank_request_key" {
+  command = plan
+
+  variables {
+    requests = {
+      " " = {
+        mode                 = "execute"
+        assignment_key       = "assignment_ok"
+        scope_type           = "subscription"
+        scope_id             = "/subscriptions/11111111-1111-1111-1111-111111111111"
+        policy_assignment_id = "/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/policyAssignments/example"
+        role_scope           = "/subscriptions/11111111-1111-1111-1111-111111111111"
+        approval_reference   = "CAB-12345"
+        resource_count       = 50
+      }
+    }
+  }
+
+  expect_failures = [var.requests]
+}
+
+run "rejects_unknown_request_field" {
+  command = plan
+
+  variables {
+    requests = {
+      execute_badfield = {
+        mode                 = "execute"
+        assignment_key       = "assignment_ok"
+        scope_type           = "subscription"
+        scope_id             = "/subscriptions/11111111-1111-1111-1111-111111111111"
+        policy_assignment_id = "/subscriptions/11111111-1111-1111-1111-111111111111/providers/Microsoft.Authorization/policyAssignments/example"
+        role_scope           = "/subscriptions/11111111-1111-1111-1111-111111111111"
+        approval_reference   = "CAB-12345"
+        resource_count       = 50
+        unexpected_field     = "not-in-the-remediations-contract"
       }
     }
   }

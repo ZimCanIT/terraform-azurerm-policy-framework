@@ -26,6 +26,71 @@ run "no_exemption_requests_create_no_resources" {
   }
 }
 
+run "rejects_null_exemptions" {
+  command = plan
+
+  variables {
+    exemptions = null
+  }
+
+  expect_failures = [var.exemptions]
+}
+
+run "rejects_scalar_exemptions" {
+  command = plan
+
+  variables {
+    exemptions = "not-an-exemption-map"
+  }
+
+  expect_failures = [var.exemptions]
+}
+
+run "rejects_non_object_exemption_entry" {
+  command = plan
+
+  variables {
+    exemptions = { malformed_entry = "not-an-object" }
+  }
+
+  expect_failures = [var.exemptions]
+}
+
+run "rejects_blank_exemption_key" {
+  command = plan
+
+  variables {
+    exemptions = { " " = {
+      request_mode         = "create"
+      assignment_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
+      scope                = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" }
+      owner                = "platform-team", reason = "A blank key fails the shape rule"
+      approval_reference   = "APR-BLANK-KEY", category = "Mitigated"
+      compensating_control = "Manual review", expires_on = "2027-01-31T00:00:00Z"
+    } }
+  }
+
+  expect_failures = [var.exemptions]
+}
+
+run "rejects_unknown_exemption_field" {
+  command = plan
+
+  variables {
+    exemptions = { unknown_field = {
+      request_mode         = "create"
+      assignment_id        = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/sub-assignment"
+      scope                = { type = "subscription", id = "/subscriptions/00000000-0000-0000-0000-000000000000" }
+      owner                = "platform-team", reason = "An unknown field fails the contract rule"
+      approval_reference   = "APR-UNKNOWN-FIELD", category = "Mitigated"
+      compensating_control = "Manual review", expires_on = "2027-01-31T00:00:00Z"
+      unexpected_field     = "not-in-the-governed-exemption-contract"
+    } }
+  }
+
+  expect_failures = [var.exemptions]
+}
+
 run "reject_scope_outside_resolved_assignment" {
   command = plan
   variables {

@@ -80,7 +80,7 @@ run "ineligible_decision_blocks_existing_state" {
           policy_definition_id    = "/providers/Microsoft.Authorization/policyDefinitions/example"
           members                 = []
           member_reference_ids    = []
-          remediation_eligibility = "ineligible"
+          remediation_eligibility = "not_eligible"
           remediation_reason      = "Stateful failure probe."
           required_roles          = [{ grant_scope = "/subscriptions/11111111-1111-1111-1111-111111111111" }]
         }
