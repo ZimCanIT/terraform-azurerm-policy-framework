@@ -148,6 +148,35 @@ run "binding_hand_off_is_identical" {
   }
 }
 
+run "binding_absent_for_assignment_without_identity" {
+  command = plan
+
+  assert {
+    condition     = !contains(keys(output.handoffs.c2), "audit-subscription")
+    error_message = "The role-grant hand-off must carry no binding for an assignment that needs no identity."
+  }
+
+  assert {
+    condition     = !contains(keys(output.direct.identity.assignment_bindings), "audit-subscription")
+    error_message = "The direct identity output must carry no binding for an assignment that needs no identity."
+  }
+
+  assert {
+    condition     = output.direct.assignments.assignments["audit-subscription"].identity_binding == null
+    error_message = "The directly wired assignments module must record a null identity_binding for an assignment that needs no identity."
+  }
+
+  assert {
+    condition     = output.states.assignments.assignments["audit-subscription"].identity_binding == null
+    error_message = "The separated assignments module must record a null identity_binding for an assignment that needs no identity, so no binding crosses the JSON boundary for it."
+  }
+}
+
+# This suite does not exercise a Terraform-unknown value that crosses a JSON
+# boundary. The mock provider supplies every computed value at plan time, and
+# jsonencode of a value that contains an unknown is itself unknown, so the
+# serialised path cannot be compared with the direct path for an unknown value
+# in this setup.
 run "lifecycle_binding_hand_off_is_identical" {
   command = plan
 
@@ -186,5 +215,43 @@ run "lifecycle_binding_hand_off_is_identical" {
       length(output.states.operations.rejected_exemptions) == 0
     )
     error_message = "Exemptions that name the serialised assignment IDs must verify against the hand-off."
+  }
+}
+
+# A null assignment ID cannot come from the assignments module for a valid
+# input. Every key with a supported scope type falls in exactly one scope
+# partition (by_scope in modules/assignments/locals.tf), and that partition's
+# policy assignment resource supplies the ID (modules/assignments/main.tf). The
+# ID is the Azure resource ID, or unknown while it is planned. A null therefore
+# arrives only through an edited or incomplete hand-off, and this run checks
+# that the operations consumer refuses it.
+#
+# The request is disabled because a blocked execute or discovery request fails
+# remediation_contract_guard in the operations module. That guard cannot be
+# named in expect_failures from this root, so the failure would fail the plan of
+# every run here. A disabled request still reports the blocking reason. The
+# refusal of an execute request without a binding is asserted by
+# modules/operations/tests/remediation-assignment-binding.tftest.hcl.
+run "null_binding_hand_off_is_reported_and_never_matched" {
+  command = plan
+
+  assert {
+    condition     = contains(output.states.operations_null_binding.skipped_operations["remediate-tag-rg"].blocked_reasons, "assignment_id_unknown")
+    error_message = "A null assignment ID in the serialised lifecycle hand-off must be reported as assignment_id_unknown on the request that names its assignment."
+  }
+
+  assert {
+    condition     = output.states.operations_null_binding.requested_operations["remediate-tag-rg"].policy_assignment_id == null
+    error_message = "A null assignment ID must not become a policy assignment ID on the request that names its assignment."
+  }
+
+  assert {
+    condition     = !contains(keys(output.states.operations_null_binding.created_operations), "remediate-tag-rg")
+    error_message = "A request whose assignment has a null ID must not create a remediation operation."
+  }
+
+  assert {
+    condition     = !contains(output.states.operations.requested_operations["remediate-tag-rg"].blocked_reasons, "assignment_id_unknown")
+    error_message = "The unmodified lifecycle hand-off must not report assignment_id_unknown, so the reason comes from the null binding alone."
   }
 }

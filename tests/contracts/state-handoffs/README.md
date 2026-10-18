@@ -24,7 +24,11 @@ The test file asserts that:
   operations output are identical in both pipelines;
 - two resolver instances given the same hand-off and intents are identical;
 - a remediation request that omits `policy_assignment_id` still takes it from
-  the serialised lifecycle binding, and exemptions verify against it.
+  the serialised lifecycle binding, and exemptions verify against it;
+- an assignment that needs no identity has no binding in the role-grant
+  hand-off or the assignments output, in either pipeline;
+- a null assignment ID in the serialised lifecycle hand-off is reported as
+  `assignment_id_unknown` and is never read as a match.
 
 Comparisons use `jsonencode` on both sides because Terraform equality compares
 types as well as values, so a decoded tuple never equals a list.

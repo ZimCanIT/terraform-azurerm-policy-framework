@@ -406,6 +406,29 @@ module "operations_state" {
   evaluation_time = local.evaluation_time
 }
 
+# Consumer side of a null assignment ID. The serialised lifecycle hand-off is
+# passed with the ID of the modify-tag-rg binding replaced by null. The request
+# is disabled and the member exemption is omitted, because an enabled request, or
+# an exemption that names an assignment ID missing from the inventory, fails a
+# guard that every run in this root plans. The null-binding run in the test
+# file asserts the outcome.
+module "operations_null_binding" {
+  source = "../../../modules/operations"
+
+  resolved_assignments = merge(local.c3, {
+    "modify-tag-rg" = merge(local.c3["modify-tag-rg"], { assignment = merge(local.c3["modify-tag-rg"].assignment, { id = null }) })
+  })
+  requests = {
+    "remediate-tag-rg" = merge(local.requests["remediate-tag-rg"], { mode = "disabled" })
+  }
+  exemptions = {
+    for key, request in local.exemption_requests : key => merge(request, {
+      assignment_id = local.c3[local.exemption_assignment_keys[key]].assignment.id
+    }) if key != "exempt-tag-member"
+  }
+  evaluation_time = local.evaluation_time
+}
+
 output "handoffs" {
   description = "The three hand-offs as the consuming states receive them."
   value = {
@@ -434,12 +457,13 @@ output "direct" {
 }
 
 output "states" {
-  description = "Every output of each module in the separated pipeline, plus the second resolver instance."
+  description = "Every output of each module in the separated pipeline, plus the second resolver instance and the operations instance fed a null assignment ID."
   value = {
     resolution                = module.resolve_roles_state
     resolution_for_assignment = module.resolve_assignments_state
     identity                  = module.identity_state
     assignments               = module.assign_state
     operations                = module.operations_state
+    operations_null_binding   = module.operations_null_binding
   }
 }
