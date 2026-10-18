@@ -1295,7 +1295,8 @@ catch {
 
 if ($CleanupOnly) {
     if (-not $StatusPath) {
-        if (-not $RunId) { Write-Host 'CleanupOnly requires RunId or an explicit StatusPath'; exit 2 }
+        # RunId was defaulted above, so only a caller-supplied value counts here.
+        if (-not $PSBoundParameters.ContainsKey('RunId')) { Write-Host 'CleanupOnly requires RunId or an explicit StatusPath'; exit 2 }
         $StatusPath = Join-Path $ArtifactRoot (Join-Path $RunId 'run-status.json')
     }
     elseif (-not [System.IO.Path]::IsPathRooted($StatusPath)) { $StatusPath = Join-Path $script:repoRoot $StatusPath }
