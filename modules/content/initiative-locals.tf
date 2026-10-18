@@ -214,6 +214,10 @@ locals {
     }
   ]
 
+  parameter_schema_value_checks_by_field = {
+    for check in local.parameter_schema_value_type_checks : check.field_id => check.valid...
+  }
+
   parameter_schema_failures = concat(
     local.parameter_schema_context_failures,
     [
@@ -223,7 +227,7 @@ locals {
         field.parameter_object_valid &&
         field.parameter_type_valid &&
         field.allowed_values_container_valid &&
-        alltrue([for check in local.parameter_schema_value_type_checks : check.valid if check.field_id == field.field_id]) &&
+        alltrue(lookup(local.parameter_schema_value_checks_by_field, field.field_id, [])) &&
         (!field.default_value_present || !field.allowed_values_present || try(
           field.parameter_type == "array" ?
           alltrue([for element in field.parameter.defaultValue : anytrue([for allowed_value in field.parameter.allowedValues : jsonencode(element) == jsonencode(allowed_value)])]) :
@@ -322,9 +326,11 @@ locals {
         field_allowlist_valid = try(length(setsubtract(toset(keys(var.initiatives[key])), local.initiative_envelope_fields)) == 0, false)
         key_valid             = try(trimspace(key) == key && trimspace(key) != "", false)
         required_fields_valid = try(can(regex("^\\\".*\\\"$", jsonencode(initiative.display_name))) && trimspace(initiative.display_name) != "" && length(initiative.policy_definition_references) > 0, false)
+        # Reads the raw input: the normalised entry trims name, version and management_group_id
+        # into strings, so a number would pass and a list would already have been dropped to null.
         scalar_types_valid = try(alltrue([
           for field in ["name", "display_name", "description", "version", "management_group_id"] :
-          try(initiative[field], null) == null || can(regex("^\\\".*\\\"$", jsonencode(initiative[field])))
+          try(var.initiatives[key][field], null) == null || can(regex("^\\\".*\\\"$", jsonencode(var.initiatives[key][field])))
         ]), false)
         metadata_valid             = initiative.metadata == null || can(keys(initiative.metadata))
         parameters_valid           = initiative.parameters == null || can(keys(initiative.parameters))
@@ -353,8 +359,11 @@ locals {
         source_valid               = try(length([for supplied in [view.definition_key, view.supplied_policy_definition_id] : supplied if supplied != null]) == 1, false)
         definition_exists_valid    = !view.is_keyed || contains(keys(local.definitions), view.definition_key)
         policy_definition_id_valid = try(view.is_keyed || anytrue([for pattern in local.policy_definition_id_patterns : can(regex(pattern, view.supplied_policy_definition_id))]), false)
+        # A custom definition is stored at one scope, where null means subscription,
+        # so a keyed custom member must name the initiative's scope exactly. Built-in
+        # definitions carry no scope.
         scope_valid = (view.is_keyed ?
-          (view.definition != null && (view.definition.management_group_id == null || view.definition.management_group_id == view.initiative.management_group_id)) :
+          (view.definition != null && (view.definition.source_type != "custom" || view.definition.management_group_id == view.initiative.management_group_id)) :
           (
             (view.supplied_policy_definition_id == null || !can(regex(local.subscription_prefix, view.supplied_policy_definition_id)) || view.initiative.management_group_id == null) &&
             (view.supplied_policy_definition_id == null || !can(regex(local.management_group_prefix, view.supplied_policy_definition_id)) || view.initiative.management_group_id != null)

@@ -110,6 +110,70 @@ run "rejects_null_member_container" {
   expect_failures = [terraform_data.initiative_ingestion_contract]
 }
 
+run "rejects_blank_initiative_display_name" {
+  command = plan
+
+  variables {
+    definitions = {}
+    initiatives = {
+      blank_display = {
+        name         = "blank-display"
+        display_name = "   "
+        description  = "Blank display name"
+        policy_definition_references = [{
+          reference_id         = "member"
+          policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+          version_constraint   = "1.0.*"
+        }]
+      }
+    }
+  }
+
+  expect_failures = [terraform_data.initiative_ingestion_contract]
+}
+
+run "rejects_non_string_initiative_name" {
+  command = plan
+
+  variables {
+    definitions = {}
+    initiatives = {
+      numeric_name = {
+        name         = 42
+        display_name = "Numeric name"
+        policy_definition_references = [{
+          reference_id         = "member"
+          policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+          version_constraint   = "1.0.*"
+        }]
+      }
+    }
+  }
+
+  expect_failures = [terraform_data.initiative_ingestion_contract]
+}
+
+run "rejects_list_initiative_version" {
+  command = plan
+
+  variables {
+    definitions = {}
+    initiatives = {
+      list_version = {
+        version      = ["1.0.0"]
+        display_name = "List version"
+        policy_definition_references = [{
+          reference_id         = "member"
+          policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+          version_constraint   = "1.0.*"
+        }]
+      }
+    }
+  }
+
+  expect_failures = [terraform_data.initiative_ingestion_contract]
+}
+
 run "rejects_exact_direct_pin" {
   command = plan
 
@@ -315,6 +379,41 @@ run "preserves_management_group_resource_and_member_contract" {
   }
 }
 
+# A custom definition without a management group is stored at subscription scope and cannot back a management-group member.
+run "rejects_subscription_scoped_definition_in_management_group_initiative" {
+  command = plan
+
+  variables {
+    definitions = {
+      scoped = {
+        source_type         = "custom"
+        display_name        = "Scoped"
+        version             = "1.0.0"
+        parameters          = { location = { type = "String" } }
+        role_definition_ids = ["/providers/Microsoft.Authorization/roleDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
+        policy_rule = {
+          if   = { field = "type", equals = "Microsoft.Resources/subscriptions" }
+          then = { effect = "audit" }
+        }
+      }
+    }
+    initiatives = {
+      platform = {
+        display_name        = "Platform initiative"
+        management_group_id = "/providers/Microsoft.Management/managementGroups/platform"
+        parameters          = { locations = { type = "Array" } }
+        policy_definition_references = [{
+          reference_id     = "location_member"
+          definition_key   = "scoped"
+          parameter_values = { location = { value = "locations" } }
+        }]
+      }
+    }
+  }
+
+  expect_failures = [terraform_data.initiative_ingestion_contract]
+}
+
 # Container boundary diagnostics: null and scalar inputs must fail at the variable boundary with the contract message.
 run "definitions_null" {
   command = plan
@@ -344,6 +443,51 @@ run "initiatives_scalar" {
   command = plan
   variables {
     initiatives = 42
+  }
+  expect_failures = [var.initiatives]
+}
+
+run "rejects_unknown_initiative_field" {
+  command = plan
+  variables {
+    initiatives = {
+      unknown_field = {
+        display_name = "Unknown field"
+        unexpected   = true
+        policy_definition_references = [{
+          reference_id         = "member"
+          policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+          version_constraint   = "1.0.*"
+        }]
+      }
+    }
+  }
+  expect_failures = [var.initiatives]
+}
+
+run "rejects_non_object_initiative_entry" {
+  command = plan
+  variables {
+    initiatives = {
+      broken = "not-an-object"
+    }
+  }
+  expect_failures = [var.initiatives]
+}
+
+run "rejects_blank_initiative_key" {
+  command = plan
+  variables {
+    initiatives = {
+      "  " = {
+        display_name = "Blank key"
+        policy_definition_references = [{
+          reference_id         = "member"
+          policy_definition_id = "/providers/Microsoft.Authorization/policyDefinitions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+          version_constraint   = "1.0.*"
+        }]
+      }
+    }
   }
   expect_failures = [var.initiatives]
 }

@@ -61,12 +61,12 @@ locals {
 }
 
 output "definitions" {
-  description = "Canonical policy definition objects keyed by catalogue key. Custom and built-in definitions share the same downstream contract."
+  description = "Canonical definition outputs keyed by stable catalogue key, for custom and built-in entries alike. This is the hand-off to behaviour resolution."
   value       = local.definitions
 }
 
 output "custom_definition_ids" {
-  description = "Azure resource IDs for custom definitions created by this module."
+  description = "Created custom definition IDs keyed by stable catalogue key."
   value = {
     for key, definition in local.custom_definition_outputs :
     key => definition.id
@@ -74,7 +74,7 @@ output "custom_definition_ids" {
 }
 
 output "built_in_definition_ids" {
-  description = "Azure resource IDs for built-in definitions referenced by this module."
+  description = "Supplied built-in references keyed by stable catalogue key."
   value = {
     for key, definition in local.built_in_definition_outputs :
     key => definition.id
@@ -125,12 +125,12 @@ locals {
 }
 
 output "initiatives" {
-  description = "Canonical initiative outputs keyed by stable catalogue key. Each entry preserves the source envelope, resolved member references, governance metadata and created resource identity."
+  description = "Canonical initiative outputs keyed by stable catalogue key, including the created Azure initiative ID, set-level parameter_schema and resolved member references with each member's independent schema and capability context. This is the hand-off to behaviour resolution."
   value       = local.initiative_outputs
 }
 
 output "initiative_ids" {
-  description = "Azure Policy initiative IDs keyed by stable catalogue key."
+  description = "Azure initiative IDs keyed by stable catalogue key."
   value = {
     for key, initiative in local.initiative_outputs :
     key => initiative.id

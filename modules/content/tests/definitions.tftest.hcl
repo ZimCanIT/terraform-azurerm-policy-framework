@@ -77,6 +77,35 @@ run "normalizes_mixed_definitions" {
   }
 }
 
+run "accepts_embedded_space_in_custom_definition_name" {
+  command = plan
+
+  variables {
+    definitions = {
+      tag_audit = {
+        source_type  = "custom"
+        name         = "tag audit"
+        display_name = "Tag audit"
+        version      = "1.0.0"
+        policy_rule = {
+          if = {
+            field  = "type"
+            equals = "Microsoft.Resources/subscriptions"
+          }
+          then = {
+            effect = "audit"
+          }
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = output.definitions["tag_audit"].name == "tag audit"
+    error_message = "A custom effective name may contain an embedded space and must resolve to that name."
+  }
+}
+
 run "preserves_capability_and_governance_fields" {
   command = plan
 
@@ -375,6 +404,32 @@ run "rejects_invalid_custom_scope_and_missing_version" {
         source_type         = "custom"
         display_name        = "Invalid custom"
         management_group_id = "/managementGroups/not-an-arm-id"
+        policy_rule = {
+          if = {
+            field  = "type"
+            equals = "Microsoft.Resources/subscriptions"
+          }
+          then = {
+            effect = "audit"
+          }
+        }
+      }
+    }
+  }
+
+  expect_failures = [var.definitions]
+}
+
+run "rejects_backslash_in_custom_definition_name" {
+  command = plan
+
+  variables {
+    definitions = {
+      backslash_name = {
+        source_type  = "custom"
+        name         = "a\\b"
+        display_name = "Backslash name"
+        version      = "1.0.0"
         policy_rule = {
           if = {
             field  = "type"
